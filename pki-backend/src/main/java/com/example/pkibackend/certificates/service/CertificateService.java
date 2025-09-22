@@ -93,7 +93,8 @@ public class CertificateService {
             } else if (createCertificateDTO.isIntermediate()) {
                 // TODO: code for intermediate certificate
             } else {
-                // TODO: code for end-entity certificate
+                certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));
             }
 
             if (createCertificateDTO.isSkiaki()) {

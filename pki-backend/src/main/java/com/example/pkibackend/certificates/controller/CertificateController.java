@@ -46,4 +46,13 @@ public class CertificateController {
         }
         return new ResponseEntity<>(true, HttpStatus.CREATED);
     }
+    @PostMapping(value="/end-entity", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Boolean> createEndEntityCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
+        Certificate certificate = certificateService.createCertificate(createCertificateDTO);
+
+        if (certificate == null) {
+            return new ResponseEntity<>(false, HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(true, HttpStatus.CREATED);
+    }
 }
