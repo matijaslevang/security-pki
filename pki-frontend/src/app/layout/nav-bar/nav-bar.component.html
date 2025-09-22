@@ -1,0 +1,3 @@
+<button (click)="auth.register()">Register</button>
+<button (click)="auth.login()">Login</button>
+<button *ngIf="logged" (click)="auth.logout()">Log out</button>

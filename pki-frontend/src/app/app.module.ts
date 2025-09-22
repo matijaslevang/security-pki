@@ -1,4 +1,7 @@
-import { NgModule } from '@angular/core';
+import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { APP_INITIALIZER, NgModule } from '@angular/core';
+import { KeycloakAngularModule, KeycloakService, KeycloakBearerInterceptor } from 'keycloak-angular';
+import { environment } from '../env/environment';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
@@ -16,10 +19,14 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { CertificateModule } from './certificate/certificate.module';
 import { provideHttpClient } from '@angular/common/http';
+import { NavBarComponent } from './layout/nav-bar/nav-bar.component';
+import { initializeKeycloak } from './auth/keycloak-init';
+
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    NavBarComponent
   ],
   imports: [
     CertificateModule,
@@ -38,8 +45,14 @@ import { provideHttpClient } from '@angular/common/http';
   ],
   providers: [
     provideAnimationsAsync(),
-    provideHttpClient()
+    provideHttpClient(),
+    KeycloakAngularModule,
+    KeycloakService,
+    HttpClientModule,
+    { provide: APP_INITIALIZER, useFactory: initializeKeycloak, deps: [KeycloakService], multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: KeycloakBearerInterceptor, multi: true },
   ],
+  
   bootstrap: [AppComponent]
 })
 export class AppModule { }
