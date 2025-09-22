@@ -1,10 +1,6 @@
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-
-import { AppRoutingModule } from './app-routing.module';
-import { AppComponent } from './app.component';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { CommonModule } from '@angular/common';
+import { SelfSignedCertificateFormComponent } from './self-signed-certificate-form/self-signed-certificate-form.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -14,18 +10,19 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
-import { CertificateModule } from './certificate/certificate.module';
-import { provideHttpClient } from '@angular/common/http';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
+
 
 @NgModule({
+  exports: [
+    SelfSignedCertificateFormComponent
+  ],
   declarations: [
-    AppComponent
+    SelfSignedCertificateFormComponent
   ],
   imports: [
-    CertificateModule,
-    BrowserModule,
-    BrowserAnimationsModule,
-    AppRoutingModule,
+    CommonModule,
     MatInputModule,
     MatDatepickerModule,
     MatNativeDateModule,
@@ -35,11 +32,7 @@ import { provideHttpClient } from '@angular/common/http';
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
-  ],
-  providers: [
-    provideAnimationsAsync(),
-    provideHttpClient()
-  ],
-  bootstrap: [AppComponent]
+    BrowserAnimationsModule,
+  ]
 })
-export class AppModule { }
+export class CertificateModule { }
