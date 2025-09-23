@@ -36,9 +36,6 @@ public class KeycloakUserService {
         Map<String, KcUserDto> unique = new HashMap<>();
         for (String role : roles) {
             for (KcUserDto u : usersWithRealmRole(role, token)) {
-                System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-                System.out.println(u.username());
-                System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
                 unique.putIfAbsent(u.id(), u);
             }
         }
