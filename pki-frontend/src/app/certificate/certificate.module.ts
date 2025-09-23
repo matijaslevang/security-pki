@@ -11,15 +11,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatSelectModule }    from '@angular/material/select';
+import { MatOptionModule }    from '@angular/material/core';
+import { EndEntityCertificateFormComponent } from './end-entity-certificate-form/end-entity-certificate-form.component';
 
 
 
 @NgModule({
   exports: [
-    SelfSignedCertificateFormComponent
+    SelfSignedCertificateFormComponent,
+    EndEntityCertificateFormComponent
   ],
   declarations: [
-    SelfSignedCertificateFormComponent
+    SelfSignedCertificateFormComponent,
+    EndEntityCertificateFormComponent
   ],
   imports: [
     CommonModule,
@@ -33,6 +38,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     MatCardModule,
     MatDialogModule,
     BrowserAnimationsModule,
+    MatSelectModule,
+    MatOptionModule
   ]
 })
 export class CertificateModule { }
