@@ -48,14 +48,9 @@ public class CertificateService {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    public Certificate createCertificate(CreateCertificateDTO createCertificateDTO) {
+    public Certificate createCertificate(CreateCertificateDTO createCertificateDTO, Issuer issuer) {
         JcaContentSignerBuilder builder = new JcaContentSignerBuilder("SHA256WithRSAEncryption");
         builder = builder.setProvider("BC");
-        Issuer issuer = issuerService.getIssuer(createCertificateDTO.getIssuerUuid());
-
-        if (issuer == null) {
-            return null;
-        }
 
         ContentSigner contentSigner;
         JcaX509ExtensionUtils extUtils;
@@ -91,7 +86,12 @@ public class CertificateService {
                 certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
                 certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.digitalSignature | KeyUsage.cRLSign));
             } else if (createCertificateDTO.isIntermediate()) {
-                // TODO: code for intermediate certificate
+
+                certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
+                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(
+                        KeyUsage.keyCertSign | KeyUsage.digitalSignature | KeyUsage.cRLSign
+                ));
+
             } else {
                 certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
                 certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));

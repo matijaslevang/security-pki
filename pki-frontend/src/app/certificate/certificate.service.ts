@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../env/environment';
 import { Observable } from 'rxjs';
@@ -15,5 +15,12 @@ export class CertificateService {
 
   createSelfSignedCertificate(newCertificate: CreateCertificate): Observable<boolean> {
     return this.httpClient.post<boolean>(this.url + "/selfsigned", newCertificate);
+  }
+
+  createIntermediateCertificate(dto: CreateCertificate, token: string): Observable<boolean> {
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    console.log("ASDDDDDDDDDD")
+    console.log(token)
+    return this.httpClient.post<boolean>(`${this.url}/intermediate`, dto, { headers });
   }
 }

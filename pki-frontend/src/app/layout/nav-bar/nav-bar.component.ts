@@ -8,6 +8,9 @@ import { AuthService } from '../../auth/auth.service';
 export class NavBarComponent {
 logged = false;
 constructor(public auth: AuthService) {}
-async ngOnInit() { this.logged = await this.auth.isLoggedIn(); }
+
+ngOnInit() { this.logged = this.auth.isLoggedIn();
+  console.log(this.auth.isLoggedIn())
+ }
 
 }

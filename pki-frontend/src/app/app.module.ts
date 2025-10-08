@@ -1,13 +1,22 @@
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+// src/app/app.module.ts
+
 import { APP_INITIALIZER, NgModule } from '@angular/core';
-import { KeycloakAngularModule, KeycloakService, KeycloakBearerInterceptor } from 'keycloak-angular';
-import { environment } from '../env/environment';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { KeycloakAngularModule, KeycloakService, KeycloakBearerInterceptor } from 'keycloak-angular';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { initializeKeycloak } from './auth/keycloak-init';
+import { NavBarComponent } from './layout/nav-bar/nav-bar.component';
+import { AdminDashboardComponent } from './dashboards/admin-dashboard/admin-dashboard.component';
+import { CaDashboardComponent } from './dashboards/ca-dashboard/ca-dashboard.component';
+import { UserDashboardComponent } from './dashboards/user-dashboard/user-dashboard.component';
+import { CertificateModule } from './certificate/certificate.module';
+
+// Uvezi sve Angular Material module
 import { MatInputModule } from '@angular/material/input';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -17,22 +26,22 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
-import { CertificateModule } from './certificate/certificate.module';
-import { provideHttpClient } from '@angular/common/http';
-import { NavBarComponent } from './layout/nav-bar/nav-bar.component';
-import { initializeKeycloak } from './auth/keycloak-init';
 
 
 @NgModule({
   declarations: [
     AppComponent,
-    NavBarComponent
+    NavBarComponent,
+    AdminDashboardComponent,
+    CaDashboardComponent,
+    UserDashboardComponent
   ],
   imports: [
-    CertificateModule,
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
+    KeycloakAngularModule, // Ključno za Keycloak
+    CertificateModule,
     MatInputModule,
     MatDatepickerModule,
     MatNativeDateModule,
@@ -45,14 +54,25 @@ import { initializeKeycloak } from './auth/keycloak-init';
   ],
   providers: [
     provideAnimationsAsync(),
-    provideHttpClient(),
-    KeycloakAngularModule,
-    KeycloakService,
-    HttpClientModule,
-    { provide: APP_INITIALIZER, useFactory: initializeKeycloak, deps: [KeycloakService], multi: true },
-    { provide: HTTP_INTERCEPTORS, useClass: KeycloakBearerInterceptor, multi: true },
+    // Omogući `HttpClient` sa podrškom za interseptore
+    provideHttpClient(withInterceptorsFromDi()),
+    {
+      // `APP_INITIALIZER` osigurava da se Keycloak inicijalizuje na startu aplikacije
+      provide: APP_INITIALIZER,
+      useFactory: initializeKeycloak,
+      deps: [KeycloakService],
+      multi: true,
+    },
+    {
+      // `KeycloakBearerInterceptor` automatski dodaje token u zaglavlje zahteva
+      provide: HTTP_INTERCEPTORS,
+      useClass: KeycloakBearerInterceptor,
+      multi: true,
+    },
+    // `KeycloakService` je automatski obezbeđen od strane `KeycloakAngularModule`
+    // Stari `HttpClientModule` nije potreban sa `provideHttpClient`
+    // Stari način: provideHttpClient() je moderniji
   ],
-  
   bootstrap: [AppComponent]
 })
 export class AppModule { }

@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { IntermediateCertificateFormComponent } from './intermediate-certificate-form/intermediate-certificate-form.component';
 
 
 
@@ -19,7 +20,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     SelfSignedCertificateFormComponent
   ],
   declarations: [
-    SelfSignedCertificateFormComponent
+    SelfSignedCertificateFormComponent,
+    IntermediateCertificateFormComponent
   ],
   imports: [
     CommonModule,
