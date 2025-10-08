@@ -19,8 +19,16 @@ export class CertificateService {
 
   createIntermediateCertificate(dto: CreateCertificate, token: string): Observable<boolean> {
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    console.log("ASDDDDDDDDDD")
-    console.log(token)
     return this.httpClient.post<boolean>(`${this.url}/intermediate`, dto, { headers });
   }
+
+  createEndEntityCertificate(newCertificate: CreateCertificate): Observable<boolean> {
+    return this.httpClient.post<boolean>(this.url + "/end-entity", newCertificate);
+  }
+  
+  getEligibleUsers() {
+    const params = { roles: 'admin-user,ca-user' }; 
+    return this.httpClient.get<KcUser[]>('/iam/users', { params });
+  }
 }
+export interface KcUser { id:string; username:string; email:string; firstName:string; lastName:string; }
