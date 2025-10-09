@@ -12,8 +12,7 @@ export class UserDashboardComponent {
   constructor(private certificateService: CertificateService, private authService: AuthService) {
 
   }
-
-  fakJu() {
+  create() {
     this.authService.getToken().then(token => this.certificateService.createIntermediateCertificate(null, token))
   }
 }

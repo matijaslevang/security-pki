@@ -17,7 +17,7 @@ export class AdminDashboardComponent {
     this.isUserAdmin = this.kc.isUserInRole('administrator');
   }
 
-    async fakJu() {
+    async create() {
       const token = await this.authService.getToken();
       const exampleSubject: Subject = {
           surname: "Ivan",
