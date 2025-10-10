@@ -1,13 +1,17 @@
 package com.example.pkibackend.users.service;
 
 import com.example.pkibackend.certificates.dtos.IssuerDTO;
+import com.example.pkibackend.certificates.model.User;
+import com.example.pkibackend.certificates.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -79,5 +83,24 @@ public class UserService {
 
         // country defaults to "RS" as per your class
         return issuerDto;
+    }
+
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public User getLoggedUser() {
+        JwtAuthenticationToken token = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        return this.findUserByEmail(token.getTokenAttributes().get("email").toString());
+    }
+
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+    public User save(User data) {
+        return this.userRepository.save(data);
     }
 }
