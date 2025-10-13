@@ -80,7 +80,7 @@ public class CertificateController {
     @GetMapping("/{serialNumber}/download")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> downloadCertificateAsKeyStore(
-            @PathVariable BigInteger serialNumber,
+            @PathVariable String serialNumber,
             Principal principal) { // Spring Security će automatski ubaciti ulogovanog korisnika
 
         try {

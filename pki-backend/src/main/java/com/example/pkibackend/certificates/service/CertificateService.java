@@ -54,7 +54,7 @@ public class CertificateService {
         }
 
         Certificate signingCertificateRecord = certificateRepository
-                .findById(new BigInteger(dto.getIssuerSerialNumber()))
+                .findById(dto.getIssuerSerialNumber())
                 .orElseThrow(() -> new RuntimeException("Issuing certificate with serial number " + dto.getIssuerSerialNumber() + " not found."));
 
         X509Certificate signingCertX509 = signingCertificateRecord.getX509Certificate();
@@ -93,13 +93,16 @@ public class CertificateService {
         }
 
         BigInteger serial;
+        UUID uuid;
+        String tempSerial;
         do {
-            UUID uuid = UUID.randomUUID();
+            uuid = UUID.randomUUID();
             serial = new BigInteger(uuid.toString().replace("-", ""), 16);
             if (serial.signum() < 0) {
                 serial = serial.negate(); // ensure positive serial number
             }
-        } while (getCertificate(serial) != null);
+            tempSerial = uuid.toString().replace("-", "");
+        } while (getCertificate(tempSerial) != null);
 
         Subject subject = subjectService.createIfNotExist(createCertificateDTO.getSubjectDto());
 
@@ -162,7 +165,9 @@ public class CertificateService {
             throw new RuntimeException(e);
         }
 
-        Certificate certificateWrapper = new Certificate(serial, subject.getId(), issuer.getUserUUID(), certificate);
+        String idSerial = uuid.toString().replace("-", "");
+
+        Certificate certificateWrapper = new Certificate(idSerial, subject.getId(), issuer.getUserUUID(), certificate);
 
         // TODO: further encrypt certificate
 
@@ -177,12 +182,12 @@ public class CertificateService {
         return certificateRepository.findBySubjectId(subjectId);
     }
 
-    public Certificate getCertificate(BigInteger serial) {
+    public Certificate getCertificate(String serial) {
         return certificateRepository.findById(serial).orElse(null);
     }
 
 
-    public byte[] getCertificateAsKeyStore(BigInteger serialNumber, String password) {
+    public byte[] getCertificateAsKeyStore(String serialNumber, String password) {
         // 1. Pronađi sertifikat u bazi
         Certificate certificateRecord = certificateRepository.findById(serialNumber)
                 .orElseThrow(() -> new RuntimeException("Certificate not found with serial number: " + serialNumber));
