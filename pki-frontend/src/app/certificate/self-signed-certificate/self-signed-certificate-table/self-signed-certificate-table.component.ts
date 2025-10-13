@@ -10,6 +10,7 @@ import { CertificateService } from '../../certificate.service';
 export class SelfSignedCertificateTableComponent implements OnInit {
 
  chains: CertificateChainDisplay[] = [];
+CertificateStatus: any;
 
   constructor(private certificateService: CertificateService) { }
 
