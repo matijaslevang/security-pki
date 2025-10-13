@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { CertificateService } from '../../certificate.service';
 import { CreateCertificate } from '../../certicifate.model';
+import { MatDialogRef } from '@angular/material/dialog';
 
 
 @Component({
@@ -10,14 +11,21 @@ import { CreateCertificate } from '../../certicifate.model';
   styleUrl: './self-signed-certificate-form.component.css'
 })
 export class SelfSignedCertificateFormComponent {
+
   form: FormGroup = new FormGroup({
     startDate: new FormControl(null, Validators.required),
     endDate: new FormControl(null, Validators.required),
     sanString: new FormControl(''),
-    skiaki: new FormControl(false)
+    skiaki: new FormControl(false),
+    givenName: new FormControl('', Validators.required),
+    surname: new FormControl('', Validators.required),
+    organization: new FormControl('', Validators.required),
+    department: new FormControl('', Validators.required),
+    country: new FormControl('', [Validators.required, Validators.minLength(2), Validators.maxLength(2)]),
+    email: new FormControl('', [Validators.required, Validators.email])
   }, { validators: [this.dateRangeValidator] })
 
-  constructor(private certificateService: CertificateService) {
+  constructor(private certificateService: CertificateService, public dialogRef: MatDialogRef<SelfSignedCertificateFormComponent>) {
 
   }
 
@@ -43,17 +51,30 @@ export class SelfSignedCertificateFormComponent {
         sanString: this.form.get('sanString')?.value || '',
         startDate: this.form.get('startDate')?.value || undefined,
         endDate: this.form.get('endDate')?.value || undefined,
-        subjectDto: null
+        subjectDto: {
+          surname: this.form.get('surname')?.value || '',
+          givenName: this.form.get('givenName')?.value || '',
+          organization: this.form.get('organization')?.value || '',
+          department: this.form.get('givenName')?.value || '',
+          email: this.form.get('email')?.value || '',
+          country: this.form.get('country')?.value || ''
+        }
       }
+      console.log(newRequest)
       this.certificateService.createSelfSignedCertificate(newRequest).subscribe({
         next: (created: boolean) => {
           if (created) {
             console.log("Created")
+            this.dialogRef.close(true);
           }
         }
       });
     } else {
       this.form.markAllAsTouched();
     }
+  }
+
+  onCancel(): void {
+    this.dialogRef.close(false);
   }
 }

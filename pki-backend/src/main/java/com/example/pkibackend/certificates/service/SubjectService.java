@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.KeyPair;
+import java.security.PublicKey;
 
 @Service
 public class SubjectService {
@@ -26,6 +27,18 @@ public class SubjectService {
         subject.setX500Name(subjectXName);
         KeyPair keyPair = KeyPairGenerator.generateKeyPair();
         subject.setPublicKey(keyPair.getPublic());
+        return subjectRepository.save(subject);
+    }
+
+    public Subject createForSelfSigned(SubjectDTO subjectDTO, PublicKey publicKey) {
+        X500Name subjectXName = DTOToX500Name.SubjectDTOToX500Name(subjectDTO);
+        Subject subject = findByX500NameString(subjectXName.toString());
+        if (subject != null) {
+            return subject;
+        }
+        subject = new Subject();
+        subject.setX500Name(subjectXName);
+        subject.setPublicKey(publicKey);
         return subjectRepository.save(subject);
     }
 
