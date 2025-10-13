@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../auth/auth.service';
 import { KeycloakService } from 'keycloak-angular';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../env/environment';
 
 @Component({
   selector: 'app-nav-bar',
@@ -11,9 +13,12 @@ export class NavBarComponent implements OnInit {
   logged = false;
   isAdmin = false;
 
+  url: string = environment.apiUrl + "/api/certificates"
+
   constructor(
     public auth: AuthService,
-    private keycloakService: KeycloakService
+    private keycloakService: KeycloakService,
+    private httpClient: HttpClient
   ) {}
 
   async ngOnInit(): Promise<void> {
