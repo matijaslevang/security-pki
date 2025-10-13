@@ -25,4 +25,14 @@ public class IssuerDTO {
         this.department = user.getDepartment();
         this.email = user.getEmail();
     }
+
+    public IssuerDTO(String uuid, String surname, String givenName, String organization, String department, String email, String country) {
+        this.uuid = uuid;
+        this.surname = surname;
+        this.givenName = givenName;
+        this.organization = organization;
+        this.department = department;
+        this.email = email;
+        this.country = country;
+    }
 }

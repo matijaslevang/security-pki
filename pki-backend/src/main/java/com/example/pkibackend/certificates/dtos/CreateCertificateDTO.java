@@ -12,7 +12,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class CreateCertificateDTO {
     private String issuerSerialNumber;
-    private SubjectDTO subjectDTO;
+    private SubjectDTO subjectDto;
     @JsonProperty("selfSigned")
     private boolean selfSigned;
     @JsonProperty("intermediate")
