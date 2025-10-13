@@ -2,6 +2,7 @@ import { Component, ViewChild } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { SelfSignedCertificateTableComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-table/self-signed-certificate-table.component';
 import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
+import { SelfSignedCertificateFormComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-form/self-signed-certificate-form.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -29,7 +30,16 @@ export class AdminDashboardComponent {
   }
 
   openCreateRootForm(): void {
-    alert('Kreiranje Root sertifikata još nije implementirano.');
+    const dialogRef = this.dialog.open(SelfSignedCertificateFormComponent, {
+      width: '800px',
+      disableClose: true,
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.certListComponent.loadAllChains();
+      }
+    });
   }
 
   openCreateEndEntityForm(): void {

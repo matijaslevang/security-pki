@@ -48,7 +48,6 @@ public class CertificateService {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-
     public Certificate createCertificate(CreateCertificateDTO dto) {
         if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty()) {
             throw new IllegalArgumentException("Issuer serial number must be provided for this operation.");
@@ -102,7 +101,7 @@ public class CertificateService {
             }
         } while (getCertificate(serial) != null);
 
-        Subject subject = subjectService.createIfNotExist(createCertificateDTO.getSubjectDTO());
+        Subject subject = subjectService.createIfNotExist(createCertificateDTO.getSubjectDto());
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
                 issuer.getX500Name(),

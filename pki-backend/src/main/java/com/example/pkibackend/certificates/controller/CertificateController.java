@@ -38,14 +38,12 @@ public class CertificateController {
     @PostMapping(value="/selfsigned", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROLE_admin-user')")
     public ResponseEntity<Boolean> createSelfSignedCertificate(@AuthenticationPrincipal Jwt jwt, @RequestBody CreateCertificateDTO createCertificateDTO) {
-        IssuerDTO issuerDTO = userService.getIssuer(jwt);
-        issuerService.createIfNotExist(issuerDTO);
+        Issuer issuer = issuerService.createIfNotExistForSelfSigned(createCertificateDTO.getSubjectDto());
 
         // because no X500Name forms should be filled for a self-signed certificate,
         // meaning the SubjectDTO will come empty
-        createCertificateDTO.setSubjectDTO(new SubjectDTO(issuerDTO));
 
-        Certificate certificate = certificateService.createCertificate(createCertificateDTO, null);
+        Certificate certificate = certificateService.createCertificate(createCertificateDTO, issuer);
 
         if (certificate == null) {
             return new ResponseEntity<>(false, HttpStatus.BAD_REQUEST);
