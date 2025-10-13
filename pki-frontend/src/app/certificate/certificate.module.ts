@@ -27,7 +27,8 @@ import { EndEntityCertificateFormComponent } from './end-entity-certificate/end-
     EndEntityCertificateFormComponent,
     EndEntityCertificateTableComponent,
     SelfSignedCertificateTableComponent,
-    IntermediateCertificateTableComponent
+    IntermediateCertificateTableComponent,
+    IntermediateCertificateFormComponent,
   ],
   declarations: [
     SelfSignedCertificateFormComponent,

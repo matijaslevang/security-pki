@@ -11,7 +11,7 @@ import java.util.Date;
 @Setter
 @NoArgsConstructor
 public class CreateCertificateDTO {
-    private String issuerUuid;
+    private String issuerSerialNumber;
     private SubjectDTO subjectDTO;
     @JsonProperty("selfSigned")
     private boolean selfSigned;

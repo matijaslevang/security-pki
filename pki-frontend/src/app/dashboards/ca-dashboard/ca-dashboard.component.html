@@ -1,1 +1,10 @@
-<app-intermediate-certificate-table></app-intermediate-certificate-table>
+<div class="dashboard-container">
+  <div class="header">
+    <button mat-raised-button color="primary" (click)="openCreateIntermediateForm()">
+      + Add Intermediate Certificate
+    </button>
+  </div>
+
+  <app-intermediate-certificate-table #chainsList></app-intermediate-certificate-table>
+
+</div>

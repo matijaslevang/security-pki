@@ -52,7 +52,7 @@ export class EndEntityCertificateFormComponent implements OnInit {
     if (this.form.valid) {
       console.log('Form submitted:', this.form.value);
       let newRequest: CreateCertificate = {
-        issuerUuid: this.form.value.issuerUserId, 
+        issuerSerialNumber: this.form.value.issuerUserId, 
         selfSigned: false,
         intermediate: false,
         skiaki: this.form.get('skiaki')?.value || false,

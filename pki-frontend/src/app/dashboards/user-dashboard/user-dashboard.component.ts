@@ -13,6 +13,6 @@ export class UserDashboardComponent {
 
   }
   create() {
-    this.authService.getToken().then(token => this.certificateService.createIntermediateCertificate(null, token))
+    this.authService.getToken().then(token => this.certificateService.createIntermediateCertificate(null))
   }
 }

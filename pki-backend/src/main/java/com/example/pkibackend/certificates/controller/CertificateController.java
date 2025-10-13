@@ -66,26 +66,17 @@ public class CertificateController {
 
     @PostMapping(value="/intermediate", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user')")
-    public ResponseEntity<Boolean> createIntermediateCertificate(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestBody CreateCertificateDTO createCertificateDTO) {
-
-        System.out.println("JWT claims: " + jwt.getClaims());
-        IssuerDTO issuerDTO = new IssuerDTO(userService.getLoggedUser());
-        Issuer issuer = issuerService.createIfNotExist(issuerDTO);
-
-        createCertificateDTO.setIntermediate(true);
-
-        if (createCertificateDTO.getSubjectDTO() == null) {
-            createCertificateDTO.setSubjectDTO(new SubjectDTO(issuerDTO));
+    public ResponseEntity<?> createIntermediateCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
+        try {
+            Certificate certificate = certificateService.createCertificate(createCertificateDTO);
+            if (certificate == null) {
+                return new ResponseEntity<>("Failed to create certificate.", HttpStatus.BAD_REQUEST);
+            }
+            return new ResponseEntity<>(true, HttpStatus.CREATED);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
-
-        Certificate certificate = certificateService.createCertificate(createCertificateDTO, issuer);
-
-        if (certificate == null) {
-            return new ResponseEntity<>(false, HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(true, HttpStatus.CREATED);
     }
 
     @GetMapping("/{serialNumber}/download")
