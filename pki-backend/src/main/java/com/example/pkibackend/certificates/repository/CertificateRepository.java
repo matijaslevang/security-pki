@@ -8,7 +8,7 @@ import java.math.BigInteger;
 import java.util.List;
 
 @Repository
-public interface CertificateRepository extends JpaRepository<Certificate, BigInteger> {
+public interface CertificateRepository extends JpaRepository<Certificate, String> {
     Certificate findByIssuerIdAndSubjectId(String issuerId, Long subjectId);
 
     List<Certificate> findBySubjectId(Long subjectId);
