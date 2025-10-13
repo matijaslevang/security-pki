@@ -20,7 +20,7 @@ import java.security.cert.X509Certificate;
 @Table(name = "certificates")
 public class Certificate {
     @Id
-    private BigInteger serial;
+    private String serial;
 
     @Column(nullable = false)
     private Long subjectId;
