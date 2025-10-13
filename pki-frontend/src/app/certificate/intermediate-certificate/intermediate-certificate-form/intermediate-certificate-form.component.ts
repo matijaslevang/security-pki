@@ -71,7 +71,7 @@ export class IntermediateCertificateFormComponent implements OnInit {
       endDate: this.form.value.endDate,
       intermediate: true,
       selfSigned: false,
-      skiaki: true,
+      skiaki: this.form.value.skiaki,
       sanString: ''
     };
 
