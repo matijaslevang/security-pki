@@ -1,57 +1,94 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { environment } from '../../../../env/environment';
+import { Component, Inject, OnInit } from '@angular/core';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Observable } from 'rxjs';
+import { AuthService } from '../../../auth/auth.service';
+import { IssuingCertificate } from '../../certicifate.model';
+import { CertificateService } from '../../certificate.service';
 
 @Component({
   selector: 'app-intermediate-certificate-form',
   templateUrl: './intermediate-certificate-form.component.html',
-  styleUrl: './intermediate-certificate-form.component.css'
+  styleUrls: ['./intermediate-certificate-form.component.css']
 })
-export class IntermediateCertificateFormComponent implements OnInit{
-form: FormGroup;
+export class IntermediateCertificateFormComponent implements OnInit {
+  form: FormGroup;
   result: any;
+  issuingCertificates$!: Observable<IssuingCertificate[]>;
+  currentUserUuid: string | null = null;
 
-  constructor(private fb: FormBuilder, private http: HttpClient) {
+  constructor(
+    private fb: FormBuilder,
+    private certificateService: CertificateService,
+    private authService: AuthService,
+    public dialogRef: MatDialogRef<IntermediateCertificateFormComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: { isAdmin: boolean }
+  ) {
     this.form = this.fb.group({
-      token: ['', Validators.required],
-      issuerUuid: ['', Validators.required],
-      startDate: ['', Validators.required],
+      issuerSerialNumber: ['', Validators.required],
+      subject: this.fb.group({
+        givenName: ['', Validators.required],
+        surname: ['', Validators.required],
+        organization: ['', Validators.required],
+        department: [''],
+        country: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(2)]],
+        email: ['', [Validators.required, Validators.email]]
+      }),
+      startDate: [new Date(), Validators.required],
       endDate: ['', Validators.required],
-      skiaki: [true]
     }, { validators: this.dateValidator });
   }
 
-  ngOnInit(): void {}
+  async ngOnInit(): Promise<void> {
+    if (this.data.isAdmin) {
+      this.issuingCertificates$ = this.certificateService.getAllIssuingCertificates();
+    } else {
+      this.issuingCertificates$ = this.certificateService.getIssuingCertificates();
+    }
+    this.currentUserUuid = await this.authService.getUserId();
+  }
 
   dateValidator(group: AbstractControl): ValidationErrors | null {
     const start = group.get('startDate')?.value;
     const end = group.get('endDate')?.value;
-    if (start && end && new Date(start) > new Date(end)) {
+    if (start && end && new Date(start) >= new Date(end)) {
       return { endBeforeStart: true };
     }
     return null;
   }
 
   submit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
 
     const dto = {
-      issuerUuid: this.form.value.issuerUuid,
+      issuerUuid: this.currentUserUuid,
+      issuerSerialNumber: this.form.value.issuerSerialNumber,
+      subjectDto: this.form.value.subject,
       startDate: this.form.value.startDate,
       endDate: this.form.value.endDate,
-      selfSigned: false,
       intermediate: true,
+      selfSigned: false,
       skiaki: this.form.value.skiaki,
       sanString: ''
     };
 
-    const headers = new HttpHeaders({ Authorization: `Bearer ${this.form.value.token}` });
-
-    this.http.post<boolean>(`${environment.apiUrl}/api/certificates/intermediate`, dto, { headers })
+    this.certificateService.createIntermediateCertificate(dto)
       .subscribe({
-        next: res => this.result = res,
-        error: err => this.result = err.message || err
+        next: res => {
+          this.result = 'Certificate created successfully!';
+          this.dialogRef.close(true);
+        },
+        error: err => {
+          this.result = `Error: ${err.message || 'Failed to create certificate.'}`;
+          console.error(err);
+        }
       });
+  }
+  
+  onCancel(): void {
+    this.dialogRef.close(false);
   }
 }

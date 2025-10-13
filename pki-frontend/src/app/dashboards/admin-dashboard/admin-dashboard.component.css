@@ -1,0 +1,24 @@
+.dashboard-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8em;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}

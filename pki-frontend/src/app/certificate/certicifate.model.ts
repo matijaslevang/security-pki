@@ -1,5 +1,5 @@
 export interface CreateCertificate {
-    issuerUuid: string,
+    issuerSerialNumber: string,
     selfSigned: boolean,
     intermediate: boolean,
     skiaki: boolean,
@@ -39,6 +39,11 @@ export interface CertificateRow {
 
 export interface CertificateChainDisplay {
   chainRows: CertificateRow[];
+}
+
+export interface IssuingCertificate {
+  serialNumber: string;
+  subject: string;
 }
 
 export enum CertificateStatus{

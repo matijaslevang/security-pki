@@ -36,7 +36,7 @@ export class SelfSignedCertificateFormComponent {
     if (this.form.valid) {
       console.log('Form submitted:', this.form.value);
       let newRequest: CreateCertificate = {
-        issuerUuid: null,
+        issuerSerialNumber: null,
         selfSigned: true,
         intermediate: false,
         skiaki: this.form.get('skiaki')?.value || false,

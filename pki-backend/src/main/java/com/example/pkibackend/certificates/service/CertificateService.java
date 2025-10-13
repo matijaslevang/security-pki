@@ -48,6 +48,38 @@ public class CertificateService {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+
+    public Certificate createCertificate(CreateCertificateDTO dto) {
+        if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty()) {
+            throw new IllegalArgumentException("Issuer serial number must be provided for this operation.");
+        }
+
+        Certificate signingCertificateRecord = certificateRepository
+                .findById(new BigInteger(dto.getIssuerSerialNumber()))
+                .orElseThrow(() -> new RuntimeException("Issuing certificate with serial number " + dto.getIssuerSerialNumber() + " not found."));
+
+        X509Certificate signingCertX509 = signingCertificateRecord.getX509Certificate();
+
+        if (signingCertX509.getBasicConstraints() < 0) {
+            throw new IllegalArgumentException("The selected certificate cannot be used to issue other certificates (it is not a CA).");
+        }
+
+        try {
+            signingCertX509.checkValidity();
+        } catch (CertificateException e) {
+            throw new RuntimeException("The selected signing certificate is not valid: " + e.getMessage());
+        }
+
+        String issuerUuidForSigningKey = signingCertificateRecord.getIssuerId();
+        Issuer issuerForSigning = issuerService.getIssuer(issuerUuidForSigningKey);
+
+        if (issuerForSigning == null) {
+            throw new RuntimeException("Could not find the owner (issuer) of the signing certificate.");
+        }
+
+        return this.createCertificate(dto, issuerForSigning);
+    }
+
     public Certificate createCertificate(CreateCertificateDTO createCertificateDTO, Issuer issuer) {
         JcaContentSignerBuilder builder = new JcaContentSignerBuilder("SHA256WithRSAEncryption");
         builder = builder.setProvider("BC");

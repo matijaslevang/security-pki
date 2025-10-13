@@ -1,49 +1,38 @@
-import { Component } from '@angular/core';
-import { KeycloakService } from 'keycloak-angular';
-import { AuthService } from '../../auth/auth.service';
-import { CertificateService } from '../../certificate/certificate.service';
-import { CreateCertificate, Subject } from '../../certificate/certicifate.model';
+import { Component, ViewChild } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { SelfSignedCertificateTableComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-table/self-signed-certificate-table.component';
+import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
 
 @Component({
   selector: 'app-admin-dashboard',
   templateUrl: './admin-dashboard.component.html',
-  styleUrl: './admin-dashboard.component.css'
+  styleUrls: ['./admin-dashboard.component.css']
 })
 export class AdminDashboardComponent {
 
-  isUserAdmin: boolean = false;
+  @ViewChild('certList') certListComponent!: SelfSignedCertificateTableComponent;
 
-  constructor(private kc: KeycloakService, private certificateService: CertificateService, private authService: AuthService) {
-    this.isUserAdmin = this.kc.isUserInRole('administrator');
+  constructor(private dialog: MatDialog) {}
+
+  openCreateIntermediateForm(): void {
+    const dialogRef = this.dialog.open(IntermediateCertificateFormComponent, {
+      width: '800px',
+      disableClose: true,
+      data: { isAdmin: true }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.certListComponent.loadAllChains();
+      }
+    });
   }
 
-    async create() {
-      const token = await this.authService.getToken();
-      const exampleSubject: Subject = {
-          surname: "Ivan",
-          givenName: "Zvonko",
-          organization: "MyCompany",
-          department: "IT",
-          email: "zvonko.ivan@example.com",
-          country: "RS"
-      };
+  openCreateRootForm(): void {
+    alert('Kreiranje Root sertifikata još nije implementirano.');
+  }
 
-      const exampleCertificate: CreateCertificate = {
-          issuerUuid: "123e4567-e89b-12d3-a456-426614174000",
-          selfSigned: false,
-          intermediate: true,
-          skiaki: true,
-          sanString: "www.example.com, example.com",
-          startDate: new Date("2025-10-08T00:00:00Z"),
-          endDate: new Date("2026-10-08T00:00:00Z"),
-          subjectDto: exampleSubject
-      };
-      this.certificateService.createIntermediateCertificate(exampleCertificate, token).subscribe({
-        next: (asd: any) => {
-          console.log("IZVRSENO:", asd)
-        }
-      }
-      );
-
+  openCreateEndEntityForm(): void {
+    alert('Kreiranje End-Entity sertifikata još nije implementirano.');
   }
 }

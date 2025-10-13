@@ -72,6 +72,8 @@ public class UserService {
         issuerDto.setGivenName((String) user.get("firstName"));
         issuerDto.setSurname((String) user.get("lastName"));
         issuerDto.setEmail((String) user.get("email"));
+        issuerDto.setOrganization((String) user.get("organization"));
+        issuerDto.setDepartment((String) user.get("department"));
 
         Map<String, List<String>> attributes = (Map<String, List<String>>) user.get("attributes");
         if (attributes != null) {

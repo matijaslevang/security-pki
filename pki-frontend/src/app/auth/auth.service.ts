@@ -20,5 +20,14 @@ export class AuthService {
   isLoggedIn() { return this.kc.isLoggedIn(); }
   getToken() { return this.kc.getToken(); }
   getProfile() { return this.kc.loadUserProfile(); }
+
+  async getUserId(): Promise<string | null> {
+    if (!await this.isLoggedIn()) {
+      return null; 
+    }
+    
+    const userProfile = await this.getProfile();
+    return userProfile.id ?? null;
+  }
 }
 
