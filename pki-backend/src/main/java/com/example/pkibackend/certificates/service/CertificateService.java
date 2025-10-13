@@ -4,6 +4,7 @@ import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.Issuer;
 import com.example.pkibackend.certificates.model.Subject;
+import com.example.pkibackend.certificates.model.enums.CertificateStatus;
 import com.example.pkibackend.certificates.repository.CertificateRepository;
 import jakarta.annotation.PostConstruct;
 import org.bouncycastle.asn1.x509.*;
@@ -331,5 +332,32 @@ public class CertificateService {
                 }
             }
         }
+    }
+
+    public List<IssuingCertificateDTO> getAllIssuingCertificates() {
+        return certificateRepository.findAll().stream()
+                .filter(cert -> {
+                    if (cert.getX509Certificate() == null) {
+                        return false;
+                    }
+                    X509Certificate x509 = cert.getX509Certificate();
+
+                    boolean isCa = x509.getBasicConstraints() != -1;
+                    if (!isCa) {
+                        return false;
+                    }
+
+                    try {
+                        x509.checkValidity();
+                        return true;
+                    } catch (CertificateException e) {
+                        return false;
+                    }
+                })
+                .map(cert -> new IssuingCertificateDTO(
+                        cert.getSerial().toString(),
+                        cert.getX509Certificate().getSubjectX500Principal().getName()
+                ))
+                .collect(Collectors.toList());
     }
 }

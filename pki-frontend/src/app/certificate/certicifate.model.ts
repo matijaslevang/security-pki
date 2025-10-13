@@ -46,8 +46,8 @@ export interface IssuingCertificate {
   subject: string;
 }
 
-export enum CertificateStatus{
-    VALID,
-    REVOKED,
-    EXPIRED
+export enum CertificateStatus {
+    VALID = 'VALID',
+    REVOKED = 'REVOKED',
+    EXPIRED = 'EXPIRED'
 }
