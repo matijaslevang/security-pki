@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
-import { CreateCertificate } from '../certicifate.model';
-import { CertificateService } from '../certificate.service';
 import { tap } from 'rxjs/operators';
-import { KcUser } from '../certificate.service';
+import { CreateCertificate } from '../../certicifate.model';
+import { KcUser, CertificateService } from '../../certificate.service';
 @Component({
   selector: 'app-end-entity-certificate-form',
   templateUrl: './end-entity-certificate-form.component.html',

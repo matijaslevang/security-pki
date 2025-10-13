@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { environment } from '../../../env/environment';
+import { environment } from '../../../../env/environment';
 
 @Component({
   selector: 'app-intermediate-certificate-form',

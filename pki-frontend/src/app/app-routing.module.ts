@@ -6,14 +6,14 @@ import { AdminDashboardComponent } from './dashboards/admin-dashboard/admin-dash
 import { CaDashboardComponent } from './dashboards/ca-dashboard/ca-dashboard.component';
 import { UserDashboardComponent } from './dashboards/user-dashboard/user-dashboard.component';
 import { AuthGuard } from './auth/auth.guard';
-import { IntermediateCertificateFormComponent } from './certificate/intermediate-certificate-form/intermediate-certificate-form.component';
+import { IntermediateCertificateFormComponent } from './certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
 
 
 const routes: Routes = [
 
     { path: 'certificate-form', component: IntermediateCertificateFormComponent },
   {
-    path: 'admin',
+    path: 'admin-dashboard',
     component: AdminDashboardComponent,
     canActivate: [AuthGuard], 
     data: {
@@ -22,7 +22,7 @@ const routes: Routes = [
   },
 
   {
-    path: 'ca',
+    path: 'ca-dashboard',
     component: CaDashboardComponent,
     canActivate: [AuthGuard],
     data: {
@@ -31,7 +31,7 @@ const routes: Routes = [
   },
 
   {
-    path: 'user',
+    path: 'user-dashboard',
     component: UserDashboardComponent,
     canActivate: [AuthGuard],
     data: {
