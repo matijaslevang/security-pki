@@ -5,10 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigInteger;
+import java.util.List;
 
 @Repository
 public interface CertificateRepository extends JpaRepository<Certificate, BigInteger> {
     Certificate findByIssuerIdAndSubjectId(String issuerId, Long subjectId);
 
-    Certificate findBySubjectId(Long subjectId);
+    List<Certificate> findBySubjectId(Long subjectId);
+
+    List<Certificate> findByIssuerId(String userId);
 }

@@ -26,6 +26,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 
 
 @NgModule({
@@ -60,7 +61,7 @@ import { MatDialogModule } from '@angular/material/dialog';
       // `APP_INITIALIZER` osigurava da se Keycloak inicijalizuje na startu aplikacije
       provide: APP_INITIALIZER,
       useFactory: initializeKeycloak,
-      deps: [KeycloakService],
+      deps: [KeycloakService, Router],
       multi: true,
     },
     {

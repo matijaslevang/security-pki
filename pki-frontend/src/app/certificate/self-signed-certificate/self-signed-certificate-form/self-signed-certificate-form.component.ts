@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
-import { CreateCertificate } from '../certicifate.model';
-import { CertificateService } from '../certificate.service';
+import { CertificateService } from '../../certificate.service';
+import { CreateCertificate } from '../../certicifate.model';
+
 
 @Component({
   selector: 'app-self-signed-certificate-form',

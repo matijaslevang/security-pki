@@ -3,6 +3,7 @@ package com.example.pkibackend.certificates.model;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+import com.example.pkibackend.util.PrivateKeyConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,7 +22,8 @@ public class Issuer {
     @Id
     private String userUUID;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "BYTEA")
+    @Convert(converter = PrivateKeyConverter.class)
     private PrivateKey privateKey;
 
     @Column(nullable = false)
