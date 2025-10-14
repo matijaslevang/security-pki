@@ -3,9 +3,11 @@ package com.example.pkibackend.certificates.controller;
 import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.Issuer;
+import com.example.pkibackend.certificates.model.Template;
 import com.example.pkibackend.certificates.model.User;
 import com.example.pkibackend.certificates.service.CertificateService;
 import com.example.pkibackend.certificates.service.IssuerService;
+import com.example.pkibackend.certificates.service.TemplateService;
 import com.example.pkibackend.users.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +36,9 @@ public class CertificateController {
 
     @Autowired
     private IssuerService issuerService;
+
+    @Autowired
+    private TemplateService templateService;
 
     @PostMapping(value="/selfsigned", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROLE_admin-user')")
@@ -156,6 +161,22 @@ public class CertificateController {
             e.printStackTrace();
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @PostMapping("/template")
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user')")
+    public ResponseEntity<?> createTemplate(@RequestBody TemplateCreateDTO templateDTO) {
+        templateService.createTemplate(templateDTO);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/templates/{serial}")
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user')")
+    public ResponseEntity<List<TemplateDTO>> getAllTemplatesForSerial(@PathVariable String serial) {
+        List<Template> templates = templateService.getAllByCertificateSerialNumber(serial);
+        List<TemplateDTO> dtos = templates.stream().map(TemplateDTO::new).toList();
+        return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 
 }
