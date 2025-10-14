@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { SelfSignedCertificateTableComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-table/self-signed-certificate-table.component';
 import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
 import { SelfSignedCertificateFormComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-form/self-signed-certificate-form.component';
+import { CreateTemplateFormComponent } from '../../certificate/templates/create-template-form/create-template-form.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -44,5 +45,12 @@ export class AdminDashboardComponent {
 
   openCreateEndEntityForm(): void {
     alert('Kreiranje End-Entity sertifikata još nije implementirano.');
+  }
+
+  openTemplateForm(): void {
+    const dialogRef = this.dialog.open(CreateTemplateFormComponent, {
+      width: '800px',
+      disableClose: true,
+    });
   }
 }
