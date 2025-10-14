@@ -27,6 +27,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { AdminRegisterComponent } from './auth/admin-register/admin-register.component';
 
 
 @NgModule({
@@ -35,7 +36,8 @@ import { Router } from '@angular/router';
     NavBarComponent,
     AdminDashboardComponent,
     CaDashboardComponent,
-    UserDashboardComponent
+    UserDashboardComponent,
+    AdminRegisterComponent
   ],
   imports: [
     BrowserModule,

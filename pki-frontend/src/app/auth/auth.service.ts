@@ -1,9 +1,15 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { KeycloakService } from 'keycloak-angular';
+import { environment } from '../../env/environment';
+import { Observable, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  constructor(private kc: KeycloakService) {}
+
+  url: string = environment.apiUrl + "/api/certificates"
+
+  constructor(private kc: KeycloakService, private httpClient: HttpClient) {}
 
   login(redirect = window.location.href) {
     return this.kc.login({ redirectUri: redirect });
@@ -28,6 +34,31 @@ export class AuthService {
     
     const userProfile = await this.getProfile();
     return userProfile.id ?? null;
+  }
+
+  registerNewUser(user: Object) :Observable<any>{
+    return this.httpClient.post(`${environment.keycloakUrl}/admin/realms/${environment.keycloakRealm}/users`, user, { observe: 'response' });
+  }
+
+  sendVerificationEmail(userId: string): Observable<any> {
+    return this.httpClient.put(`${environment.keycloakUrl}/admin/realms/${environment.keycloakRealm}/users/${userId}/execute-actions-email`,
+      ['VERIFY_EMAIL', 'UPDATE_PASSWORD']);
+  }
+
+  assignRoleToUser(userId: string, roleName: string): Observable<any> {
+    console.log(roleName)
+    return this.httpClient.get<any[]>(`${environment.keycloakUrl}/admin/realms/${environment.keycloakRealm}/roles`).pipe(
+      switchMap(roles => {
+        const role = roles.find(r => r.name === roleName);
+        console.log(roles)
+        if (!role) throw new Error(`Role ${roleName} not found`);
+        return this.httpClient.post(`${environment.keycloakUrl}/admin/realms/${environment.keycloakRealm}/users/${userId}/role-mappings/realm`, [role]);
+      })
+    );
+  }
+
+  getAllRoles(): Observable<any[]> {
+    return this.httpClient.get<any[]>(`${environment.keycloakUrl}/admin/realms/${environment.keycloakRealm}/roles`);
   }
 }
 

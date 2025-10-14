@@ -1,0 +1,47 @@
+<button (click)="openModal()">Register new user</button>
+<div class="modal" *ngIf="showModal">
+  <div class="modal-content">
+    <span class="close" (click)="closeModal()">&times;</span>
+    <h2>Register New User</h2>
+
+    <form [formGroup]="form" (ngSubmit)="registerUser()">
+
+      <label>Username *</label>
+      <input formControlName="username" type="text">
+
+      <!-- <label>Password *</label>
+      <input formControlName="password" type="password">
+
+      <label>Confirm Password *</label>
+      <input formControlName="confirmPassword" type="password">
+        <div *ngIf="form.errors && form.errors['passwordsMismatch']" class="error">
+        Passwords do not match
+        </div> -->
+
+
+      <label>Email *</label>
+      <input formControlName="email" type="email">
+
+      <label>First Name *</label>
+      <input formControlName="firstName" type="text">
+
+      <label>Last Name *</label>
+      <input formControlName="lastName" type="text">
+
+      <label>Organization *</label>
+      <input formControlName="organization" type="text">
+
+      <label>Department *</label>
+      <input formControlName="department" type="text">
+
+      <!-- <label>Role *</label>
+      <select formControlName="role">
+        <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+      </select> -->
+
+      <button type="submit">Register User</button>
+    </form>
+
+    <p class="result" *ngIf="resultMessage">{{ resultMessage }}</p>
+  </div>
+</div>

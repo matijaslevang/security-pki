@@ -145,4 +145,17 @@ public class CertificateController {
         List<CertificateChainDisplayDTO> chains = certificateService.getCertificateChainsForAdmin();
         return new ResponseEntity<>(chains, HttpStatus.OK);
     }
+
+    @GetMapping("/all-issuing-certificates")
+    @PreAuthorize("hasAuthority('ROLE_admin-user')")
+    public ResponseEntity<List<IssuingCertificateDTO>> getAllIssuingCertificates() {
+        try {
+            List<IssuingCertificateDTO> certificates = certificateService.getAllIssuingCertificates();
+            return new ResponseEntity<>(certificates, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

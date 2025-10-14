@@ -18,12 +18,14 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
+  table-layout: fixed;
 }
 
 th, td {
   border: 1px solid #dddddd;
   text-align: left;
   padding: 8px;
+  word-wrap: break-word;
 }
 
 thead tr {
@@ -56,4 +58,9 @@ button:hover {
   margin-top: 2rem;
   font-style: italic;
   color: #6c757d;
+}
+
+.chain-table h3 {
+  word-wrap: break-word; /* Allows long text to wrap to the next line */
+  font-size: 1.4em; /* Slightly smaller font size for the title */
 }

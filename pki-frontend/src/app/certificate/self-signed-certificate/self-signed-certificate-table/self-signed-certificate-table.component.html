@@ -12,7 +12,6 @@
         <tr>
           <th>Subject (with hierarchy)</th>
           <th>Type</th>
-          <th>Status</th>
           <th>Serial Number</th>
           <th>Actions</th>
         </tr>
@@ -30,18 +29,10 @@
                 <span *ngIf="!isCa(row, chain)">End-Entity</span>
              </ng-container>
           </td>
-          <td>
-            <span [ngClass]="{
-              'status-valid': row.certificate.status.toString() === 'VALID',
-              'status-revoked': row.certificate.status.toString() === 'REVOKED'
-            }">
-              {{ row.certificate.status }}
-            </span>
-          </td>
           <td>{{ row.certificate.serialNumber }}</td>
           <td>
             <button class="btn-download" (click)="downloadCertificate(row.certificate.serialNumber)">Download</button>
-            <button *ngIf="row.certificate.status.toString() === 'VALID'" class="btn-revoke" (click)="revokeCertificate(row.certificate)">Revoke</button>
+            <button *ngIf="row.certificate.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(row.certificate)">Revoke</button>
           </td>
         </tr>
       </tbody>
