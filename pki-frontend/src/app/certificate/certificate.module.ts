@@ -18,6 +18,7 @@ import { SelfSignedCertificateTableComponent } from './self-signed-certificate/s
 import { SelfSignedCertificateFormComponent } from './self-signed-certificate/self-signed-certificate-form/self-signed-certificate-form.component';
 import { EndEntityCertificateTableComponent } from './end-entity-certificate/end-entity-certificate-table/end-entity-certificate-table.component';
 import { EndEntityCertificateFormComponent } from './end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
+import { CreateTemplateFormComponent } from './templates/create-template-form/create-template-form.component';
 
 
 
@@ -37,6 +38,7 @@ import { EndEntityCertificateFormComponent } from './end-entity-certificate/end-
     IntermediateCertificateTableComponent,
     SelfSignedCertificateTableComponent,
     EndEntityCertificateTableComponent,
+    CreateTemplateFormComponent,
   ],
   imports: [
     CommonModule,

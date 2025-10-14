@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../env/environment';
 import { Observable } from 'rxjs';
-import { CertificateChain, CertificateChainDisplay, CertificateInfo, CreateCertificate, IssuingCertificate } from './certicifate.model';
+import { CertificateChain, CertificateChainDisplay, CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
 
 @Injectable({
   providedIn: 'root'
@@ -57,5 +57,14 @@ export class CertificateService {
   getAllCertificateChains(): Observable<CertificateChainDisplay[]> {
     return this.httpClient.get<CertificateChainDisplay[]>(`${this.url}/all-chains`);
   }
+
+  createCertificateTemplate(newTemplate: CreateCertTemplate): Observable<any> {
+    return this.httpClient.post<any>(this.url + "/template", newTemplate);
+  }
+
+  getAllTemplatesForCertificateSerial(serial: string): Observable<CertTemplate[]> {
+    return this.httpClient.get<CertTemplate[]>(this.url + "/templates/" + serial);
+  }
+
 }
 export interface KcUser { id:string; username:string; email:string; firstName:string; lastName:string; }

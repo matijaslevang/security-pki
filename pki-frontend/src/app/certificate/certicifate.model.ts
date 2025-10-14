@@ -51,3 +51,24 @@ export enum CertificateStatus {
     REVOKED = 'REVOKED',
     EXPIRED = 'EXPIRED'
 }
+
+export interface CreateCertTemplate {
+  serialNumber: string,
+  commonNameRegex: string,
+  sanRegex: string,
+  ttl: number,
+  skiakiDefaultValue: boolean,
+  keyUsageDefaultValues: boolean[],
+  extKeyUsageDefaultValues: boolean[],
+}
+
+export interface CertTemplate {
+  id: number,
+  serialNumber: string,
+  commonNameRegex: string,
+  sanRegex: string,
+  ttl: number,
+  skiakiDefaultValue: boolean,
+  keyUsageDefaultValues: boolean[],
+  extKeyUsageDefaultValues: boolean[],
+} 
