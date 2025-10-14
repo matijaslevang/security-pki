@@ -51,6 +51,7 @@ export class AdminDashboardComponent {
     const dialogRef = this.dialog.open(CreateTemplateFormComponent, {
       width: '800px',
       disableClose: true,
+      data: { isAdmin: true }
     });
   }
 }
