@@ -4,6 +4,7 @@ import { SelfSignedCertificateTableComponent } from '../../certificate/self-sign
 import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
 import { SelfSignedCertificateFormComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-form/self-signed-certificate-form.component';
 import { CreateTemplateFormComponent } from '../../certificate/templates/create-template-form/create-template-form.component';
+import { EndEntityCertificateFormComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -44,7 +45,12 @@ export class AdminDashboardComponent {
   }
 
   openCreateEndEntityForm(): void {
-    alert('Kreiranje End-Entity sertifikata još nije implementirano.');
+    const dialogRef = this.dialog.open(EndEntityCertificateFormComponent, {
+      width: '800px',
+      disableClose: true,
+      data: { isAdmin: true } 
+    });
+    dialogRef.afterClosed().subscribe(ok => { if (ok) this.certListComponent.loadAllChains(); });
   }
 
   openTemplateForm(): void {

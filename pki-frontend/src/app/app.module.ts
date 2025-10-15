@@ -9,6 +9,8 @@ import { Router } from '@angular/router';
 
 // === MATERIAL MODULES ===
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -65,6 +67,9 @@ import { AuthModule } from './auth/auth.module';
     MatNativeDateModule,
     MatFormFieldModule,
     MatCheckboxModule,
+    MatSelectModule,
+    MatOptionModule,
+    ReactiveFormsModule,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,

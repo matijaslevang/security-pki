@@ -2,6 +2,7 @@ import { Component, ViewChild } from '@angular/core';
 import { IntermediateCertificateTableComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-table/intermediate-certificate-table.component';
 import { MatDialog } from '@angular/material/dialog';
 import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
+import { EndEntityCertificateFormComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
 
 @Component({
   selector: 'app-ca-dashboard',
@@ -31,4 +32,13 @@ export class CaDashboardComponent {
       }
     });
   }
+
+  openCreateEndEntityForm(): void {
+  const dialogRef = this.dialog.open(EndEntityCertificateFormComponent, {
+    width: '800px',
+    disableClose: true,
+    data: { isAdmin: false }  // ca-user vidi samo svoje CA sertifikate kao issuere
+  });
+  dialogRef.afterClosed().subscribe(ok => { if (ok) this.chainsListComponent.loadChains(); });
+}
 }
