@@ -1,54 +1,88 @@
-<mat-card class="certificate-form-card">
-  <mat-card-title>Generate end-entity certificate</mat-card-title>
-  <mat-card-content>
-    <form [formGroup]="form" (ngSubmit)="submit()" class="certificate-form">
-      <mat-form-field appearance="fill" class="full-width">
-        <mat-label>Issuer (admin/ca user)</mat-label>
-        <mat-select formControlName="issuerUserId">
-            <mat-option *ngFor="let u of users" [value]="u.id">
-            {{u.username}} • {{u.email}}
-            </mat-option>
-        </mat-select>
-        <mat-error *ngIf="form.get('issuerUserId')?.hasError('required')">Issuer is required.</mat-error>
+<h1 mat-dialog-title>Issue End-Entity Certificate</h1>
+
+<div mat-dialog-content>
+  <form [formGroup]="form" (ngSubmit)="submit()" class="certificate-form">
+
+    <h2>Issuing Certificate</h2>
+    <p>Select the CA certificate that signs this end-entity.</p>
+
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Issuer CA certificate</mat-label>
+      <mat-select formControlName="issuerSerialNumber">
+        <mat-option *ngFor="let cert of issuingCertificates$ | async" [value]="cert.serialNumber">
+          {{ cert.subject }} (SN: {{ cert.serialNumber }})
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.get('issuerSerialNumber')?.hasError('required')">
+        You must select an issuing certificate.
+      </mat-error>
+    </mat-form-field>
+
+    <h2 class="form-section-title">Subject Details</h2>
+    <div class="subject-group">
+      <mat-form-field appearance="fill">
+        <mat-label>Given Name</mat-label>
+        <input matInput formControlName="givenName">
       </mat-form-field>
 
-      <mat-form-field appearance="fill" class="full-width">
+      <mat-form-field appearance="fill">
+        <mat-label>Surname</mat-label>
+        <input matInput formControlName="surname">
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Organization (O)</mat-label>
+        <input matInput formControlName="organization">
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Department (OU)</mat-label>
+        <input matInput formControlName="department">
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Country (C)</mat-label>
+        <input matInput formControlName="country" placeholder="e.g., RS">
+      </mat-form-field>
+
+      <mat-form-field appearance="fill">
+        <mat-label>Email Address</mat-label>
+        <input matInput formControlName="email" placeholder="e.g., user@company.com">
+      </mat-form-field>
+    </div>
+
+    <h2 class="form-section-title">Validity Period</h2>
+    <div class="date-group">
+      <mat-form-field appearance="fill">
         <mat-label>Start Date</mat-label>
-        <input matInput [matDatepicker]="startPicker" formControlName="startDate" />
+        <input matInput [matDatepicker]="startPicker" formControlName="startDate">
         <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
         <mat-datepicker #startPicker></mat-datepicker>
-        <mat-error *ngIf="form.get('startDate')?.hasError('required')">
-          Start date is required.
-        </mat-error>
       </mat-form-field>
 
-      <mat-form-field appearance="fill" class="full-width">
+      <mat-form-field appearance="fill">
         <mat-label>End Date</mat-label>
-        <input matInput [matDatepicker]="endPicker" formControlName="endDate" />
+        <input matInput [matDatepicker]="endPicker" formControlName="endDate">
         <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
         <mat-datepicker #endPicker></mat-datepicker>
-        <mat-error *ngIf="form.get('endDate')?.hasError('required')">
-          End date is required.
-        </mat-error>
         <mat-error *ngIf="form.hasError('endBeforeStart') && form.get('endDate')?.touched">
           End date must be after start date.
         </mat-error>
       </mat-form-field>
+    </div>
 
-      <mat-form-field appearance="fill" class="full-width">
-        <mat-label>SAN</mat-label>
-        <input matInput formControlName="sanString" placeholder="Enter SAN" />
-        <mat-error *ngIf="form.get('sanString')?.hasError('required')">
-          SAN is required.
-        </mat-error>
-      </mat-form-field>
+    <h2 class="form-section-title">Extensions</h2>
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>SAN (comma-separated: DNS:api.example.com, IP:10.0.0.5)</mat-label>
+      <input matInput formControlName="sanString" />
+    </mat-form-field>
 
-      <mat-checkbox formControlName="skiaki" class="checkbox-full-width">SKI/AKI</mat-checkbox>
+    <mat-checkbox formControlName="skiaki" class="checkbox-full-width">SKI/AKI</mat-checkbox>
+  </form>
+</div>
 
-      <button mat-raised-button color="primary" class="full-width" type="submit">
-        Submit
-      </button>
+<div mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="submit()">Issue Certificate</button>
+</div>
 
-    </form>
-  </mat-card-content>
-</mat-card>

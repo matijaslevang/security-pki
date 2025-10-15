@@ -12,7 +12,7 @@ export class CertificateService {
   url: string = environment.apiUrl + "/api/certificates"
 
   constructor(private httpClient: HttpClient) { }
-
+  
   createSelfSignedCertificate(newCertificate: CreateCertificate): Observable<boolean> {
     return this.httpClient.post<boolean>(this.url + "/selfsigned", newCertificate);
   }

@@ -57,9 +57,9 @@ public class CertificateController {
     }
 
     @PostMapping(value="/end-entity", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user')")
     public ResponseEntity<Boolean> createEndEntityCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
-        Certificate certificate = certificateService.createCertificate(createCertificateDTO, null);
+        Certificate certificate = certificateService.createCertificate(createCertificateDTO);
 
         if (certificate == null) {
             return new ResponseEntity<>(false, HttpStatus.BAD_REQUEST);
