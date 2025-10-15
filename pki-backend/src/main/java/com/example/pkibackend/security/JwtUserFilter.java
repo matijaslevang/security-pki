@@ -40,20 +40,9 @@ public class JwtUserFilter extends OncePerRequestFilter {
                 String keycloakId = String.valueOf(token.getTokenAttributes().get("sub"));
                 String firstname = String.valueOf(token.getTokenAttributes().get("given_name"));
                 String lastname = String.valueOf(token.getTokenAttributes().get("family_name"));
+                String organization = String.valueOf(token.getTokenAttributes().get("organization"));
+                String department = String.valueOf(token.getTokenAttributes().get("department"));
 
-                // ISPRAVLJENA LOGIKA ZA ČITANJE ATRIBUTA
-                Map<String, Object> attributes = (Map<String, Object>) token.getTokenAttributes().get("attributes");
-                String organization = null;
-                String department = null;
-
-                if (attributes != null) {
-                    if (attributes.get("organization") instanceof List && !((List<?>) attributes.get("organization")).isEmpty()) {
-                        organization = ((List<String>) attributes.get("organization")).get(0);
-                    }
-                    if (attributes.get("department") instanceof List && !((List<?>) attributes.get("department")).isEmpty()) {
-                        department = ((List<String>) attributes.get("department")).get(0);
-                    }
-                }
 
                 this.userService.save(new User(null, keycloakId, email, firstname, lastname, organization, department, new HashSet<>()));
             }
