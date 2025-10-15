@@ -48,6 +48,8 @@ public class WebSecurityConfig {
         http.authorizeHttpRequests((requests) -> requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/user/home").permitAll()
+                .requestMatchers(HttpMethod.GET,  "/api/certificates/crl/latest").permitAll()
+                .requestMatchers(HttpMethod.HEAD, "/api/certificates/crl/latest").permitAll()
                 .anyRequest().authenticated()
         );
 

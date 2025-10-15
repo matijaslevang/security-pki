@@ -19,6 +19,7 @@ import { SelfSignedCertificateFormComponent } from './self-signed-certificate/se
 import { EndEntityCertificateTableComponent } from './end-entity-certificate/end-entity-certificate-table/end-entity-certificate-table.component';
 import { EndEntityCertificateFormComponent } from './end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
 import { CreateTemplateFormComponent } from './templates/create-template-form/create-template-form.component';
+import { RevocationDialogComponent } from './revocation-dialog/revocation-dialog.component';
 
 
 
@@ -39,6 +40,7 @@ import { CreateTemplateFormComponent } from './templates/create-template-form/cr
     SelfSignedCertificateTableComponent,
     EndEntityCertificateTableComponent,
     CreateTemplateFormComponent,
+    RevocationDialogComponent,
   ],
   imports: [
     CommonModule,

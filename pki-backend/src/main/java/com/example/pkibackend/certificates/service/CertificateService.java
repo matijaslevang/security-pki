@@ -6,6 +6,7 @@ import com.example.pkibackend.certificates.model.Issuer;
 import com.example.pkibackend.certificates.model.Subject;
 import com.example.pkibackend.certificates.model.User;
 import com.example.pkibackend.certificates.model.enums.CertificateStatus;
+import com.example.pkibackend.certificates.model.enums.RevocationReason;
 import com.example.pkibackend.certificates.repository.CertificateRepository;
 import com.example.pkibackend.certificates.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
@@ -33,7 +34,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import org.springframework.security.access.AccessDeniedException;
+import java.time.Instant;
 @Service
 public class CertificateService {
 
@@ -48,42 +50,112 @@ public class CertificateService {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CrlService crlService;
 
     @PostConstruct
     public void init() {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+//    public Certificate createCertificate(CreateCertificateDTO dto) {
+//        if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty()) {
+//            throw new IllegalArgumentException("Issuer serial number must be provided for this operation.");
+//        }
+//
+//        Certificate signingCertificateRecord = certificateRepository
+//                .findById(dto.getIssuerSerialNumber())
+//                .orElseThrow(() -> new RuntimeException("Issuing certificate with serial number " + dto.getIssuerSerialNumber() + " not found."));
+//
+//        X509Certificate signingCertX509 = signingCertificateRecord.getX509Certificate();
+//
+//        if (signingCertX509.getBasicConstraints() < 0) {
+//            throw new IllegalArgumentException("The selected certificate cannot be used to issue other certificates (it is not a CA).");
+//        }
+//
+//        try {
+//            signingCertX509.checkValidity();
+//        } catch (CertificateException e) {
+//            throw new RuntimeException("The selected signing certificate is not valid: " + e.getMessage());
+//        }
+//
+//        boolean hasKeyCertSign = signingCertX509.getKeyUsage() != null
+//                && signingCertX509.getKeyUsage().length > 5
+//                && signingCertX509.getKeyUsage()[5];
+//        if (!hasKeyCertSign) {
+//            throw new IllegalArgumentException("The issuing certificate is missing the KeyCertSign permission.");
+//        }
+//
+//        if (signingCertificateRecord.getStatus() == CertificateStatus.REVOKED) {
+//            throw new IllegalArgumentException("The issuing certificate has been revoked and cannot issue new certificates.");
+//        }
+//
+//        if (dto.getEndDate().after(signingCertX509.getNotAfter())) {
+//            throw new IllegalArgumentException("End date of the issued certificate exceeds the issuer's validity period.");
+//        }
+//
+//        String issuerUuidForSigningKey = signingCertificateRecord.getIssuerId();
+//        Issuer issuerForSigning = issuerService.getIssuer(issuerUuidForSigningKey);
+//
+//        if (issuerForSigning == null) {
+//            throw new RuntimeException("Could not find the owner (issuer) of the signing certificate.");
+//        }
+//
+//        return this.createCertificate(dto, issuerForSigning);
+//    }
     public Certificate createCertificate(CreateCertificateDTO dto) {
-        if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty()) {
-            throw new IllegalArgumentException("Issuer serial number must be provided for this operation.");
-        }
+        // 1) Obavezni parametri
+        if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty())
+            throw new IllegalArgumentException("Issuer serial number is required.");
+        if (dto.getStartDate() == null || dto.getEndDate() == null)
+            throw new IllegalArgumentException("Start/end date are required.");
+        if (!dto.getEndDate().after(dto.getStartDate()))
+            throw new IllegalArgumentException("End date must be after start date.");
 
-        Certificate signingCertificateRecord = certificateRepository
+        // 2) Nađi izdavaoca po serijskom broju
+        Certificate issuerRecord = certificateRepository
                 .findById(dto.getIssuerSerialNumber())
-                .orElseThrow(() -> new RuntimeException("Issuing certificate with serial number " + dto.getIssuerSerialNumber() + " not found."));
+                .orElseThrow(() -> new RuntimeException("Issuing certificate not found."));
 
-        X509Certificate signingCertX509 = signingCertificateRecord.getX509Certificate();
+        X509Certificate issuerX = issuerRecord.getX509Certificate();
 
-        if (signingCertX509.getBasicConstraints() < 0) {
-            throw new IllegalArgumentException("The selected certificate cannot be used to issue other certificates (it is not a CA).");
-        }
-
+        // 3) Validacije izdavaoca
+        if (issuerX == null) throw new IllegalStateException("Issuer X509 is missing.");
+        if (issuerRecord.getStatus() == CertificateStatus.REVOKED)
+            throw new IllegalArgumentException("Issuing certificate is revoked.");
+        if (!isCa(issuerX))
+            throw new IllegalArgumentException("Issuing certificate is not a CA.");
+        if (!hasKeyCertSign(issuerX))
+            throw new IllegalArgumentException("Issuing certificate lacks KeyCertSign.");
         try {
-            signingCertX509.checkValidity();
+            issuerX.checkValidity(); // nije istekao i još ne važi u budućnosti
         } catch (CertificateException e) {
-            throw new RuntimeException("The selected signing certificate is not valid: " + e.getMessage());
+            throw new IllegalArgumentException("Issuing certificate not valid now.");
         }
 
-        String issuerUuidForSigningKey = signingCertificateRecord.getIssuerId();
-        Issuer issuerForSigning = issuerService.getIssuer(issuerUuidForSigningKey);
+        // 4) Ograniči važenje izdatog sertifikata u okviru izdavaoca
+        if (dto.getEndDate().after(issuerX.getNotAfter()))
+            throw new IllegalArgumentException("End date exceeds issuer validity.");
+        // opcionalno i donja granica:
+        // if (dto.getStartDate().before(issuerX.getNotBefore()))
+        //     throw new IllegalArgumentException("Start date is before issuer validity.");
 
-        if (issuerForSigning == null) {
-            throw new RuntimeException("Could not find the owner (issuer) of the signing certificate.");
-        }
+        // 5) Učitaj privatni ključ izdavaoca
+        Issuer issuer = issuerService.getIssuer(issuerRecord.getIssuerId());
+        if (issuer == null) throw new RuntimeException("Issuer owner not found.");
 
-        return this.createCertificate(dto, issuerForSigning);
+        // 6) Delegiraj stvarnu izradu (ekstenzije, SKI/AKI, SAN, potpis)
+        return createCertificate(dto, issuer);
     }
+
+    // Pomagači (u istom servisu, private):
+    private boolean isCa(X509Certificate x) { return x.getBasicConstraints() != -1; }
+
+    private boolean hasKeyCertSign(X509Certificate x) {
+        boolean[] ku = x.getKeyUsage();
+        return ku != null && ku.length > 5 && ku[5];
+    }
+
 
     public Certificate createCertificate(CreateCertificateDTO createCertificateDTO, Issuer issuer) {
         JcaContentSignerBuilder builder = new JcaContentSignerBuilder("SHA256WithRSAEncryption");
@@ -150,8 +222,26 @@ public class CertificateService {
                 GeneralName[] sanNameList = sanList.stream().map(name -> new GeneralName(GeneralName.dNSName, name)).toArray(GeneralName[]::new);
                 GeneralNames sanNames = new GeneralNames(sanNameList);
                 certGen.addExtension(Extension.subjectAlternativeName, false, sanNames);
+//                String cdpUrl = "http://localhost:7777/api/crl/latest";
+//                DistributionPointName dpName = new DistributionPointName(
+//                        new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
+//                DistributionPoint dp = new DistributionPoint(dpName, null, null);
+//                CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[] { dp });
+//                certGen.addExtension(Extension.cRLDistributionPoints, false, cdp);
             }
 
+        } catch (CertIOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // CDP (CRL Distribution Points)
+        String cdpUrl = crlService.getPublicCrlUrl(); // vidi korak 5.c ispod
+        DistributionPointName dpName = new DistributionPointName(
+                new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
+        DistributionPoint dp = new DistributionPoint(dpName, null, null);
+        CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[] { dp });
+        try {
+            certGen.addExtension(Extension.cRLDistributionPoints, false, cdp);
         } catch (CertIOException e) {
             throw new RuntimeException(e);
         }
@@ -177,7 +267,37 @@ public class CertificateService {
         return certificateRepository.save(certificateWrapper);
     }
 
+    public void revoke(String serial, int reasonCode, String requesterKcUuid, boolean isAdmin) {
+        Certificate c = certificateRepository.findById(serial)
+                .orElseThrow(() -> new RuntimeException("Certificate not found."));
 
+        if (c.getStatus() == CertificateStatus.REVOKED)
+            throw new IllegalStateException("Already revoked.");
+
+        // Ko sme da povuče:
+        // - admin: sve
+        // - issuer-owner: ako ovaj korisnik ima issuerId == requester
+        // - subject-owner: ako je ovaj korisnik vlasnik subjekta
+        boolean allowed = isAdmin
+                || requesterKcUuid.equals(c.getIssuerId())
+                || isSubjectOwner(requesterKcUuid, c.getSubjectId());
+
+        if (!allowed) throw new AccessDeniedException("Forbidden");
+
+        c.setStatus(CertificateStatus.REVOKED);
+        c.setRevokedAt(Instant.now());
+        c.setRevocationReason(RevocationReason.fromCode(reasonCode));
+        certificateRepository.save(c);
+        crlService.regenerateCrl();
+    }
+
+    private boolean isSubjectOwner(String kcUuid, Long subjectId) {
+        // Ako već imaš SubjectService → mapiraj subjectId -> user; ili koristi UserRepository
+        // Minimalna verzija: korisnik mora imati ovaj cert u svom setu:
+        return userRepository.findByKeycloakId(kcUuid)
+                .map(u -> u.getCertificates().stream().anyMatch(cert -> cert.getSubjectId().equals(subjectId)))
+                .orElse(false);
+    }
 
     public Certificate findCertificateByIssuerAndSubject(Long subjectId, String issuerId) {
         return certificateRepository.findByIssuerIdAndSubjectId(issuerId, subjectId);
@@ -193,9 +313,14 @@ public class CertificateService {
 
 
     public byte[] getCertificateAsKeyStore(String serialNumber, String password) {
+
         // 1. Pronađi sertifikat u bazi
         Certificate certificateRecord = certificateRepository.findById(serialNumber)
                 .orElseThrow(() -> new RuntimeException("Certificate not found with serial number: " + serialNumber));
+
+        if (certificateRecord.getStatus() == CertificateStatus.REVOKED) {
+            throw new RuntimeException("Revoked certificates cannot be downloaded.");
+        }
 
         // 2. Pronađi issuera da bismo dobili privatni ključ
         // Tvoj AttributeConverter će automatski dekriptovati ključ ovde!
@@ -249,7 +374,8 @@ public class CertificateService {
                 x509Cert.getIssuerX500Principal().getName(),  // Dobijamo Issuer
                 x509Cert.getNotBefore(), // Važi od
                 x509Cert.getNotAfter() ,// Važi do
-                x509Cert.getBasicConstraints() != -1
+                x509Cert.getBasicConstraints() != -1,
+                certificate.getStatus()
         );
     }
 
@@ -333,60 +459,142 @@ public class CertificateService {
         }
     }
 
+//    public List<IssuingCertificateDTO> getAllIssuingCertificates() {
+//        return certificateRepository.findAll().stream()
+//                .filter(cert -> cert.getStatus() == CertificateStatus.VALID)
+//                .filter(cert -> {
+//                    if (cert.getX509Certificate() == null) {
+//                        return false;
+//                    }
+//                    X509Certificate x509 = cert.getX509Certificate();
+//
+//                    boolean isCa = x509.getBasicConstraints() != -1;
+//                    if (!isCa) {
+//                        return false;
+//                    }
+//
+//                    try {
+//                        x509.checkValidity();
+//                        return true;
+//                    } catch (CertificateException e) {
+//                        return false;
+//                    }
+//                })
+//                .map(cert -> new IssuingCertificateDTO(
+//                        cert.getSerial().toString(),
+//                        cert.getX509Certificate().getSubjectX500Principal().getName()
+//                ))
+//                .collect(Collectors.toList());
+//    }
+    // ja dodala
     public List<IssuingCertificateDTO> getAllIssuingCertificates() {
         return certificateRepository.findAll().stream()
+                .filter(cert -> cert.getX509Certificate() != null)
+                .filter(cert -> cert.getStatus() == CertificateStatus.VALID)
+                .filter(cert -> !isRevoked(cert))
                 .filter(cert -> {
-                    if (cert.getX509Certificate() == null) {
-                        return false;
-                    }
                     X509Certificate x509 = cert.getX509Certificate();
-
-                    boolean isCa = x509.getBasicConstraints() != -1;
-                    if (!isCa) {
-                        return false;
-                    }
-
+                    if (x509.getBasicConstraints() == -1) return false;      // nije CA
+                    boolean[] ku = x509.getKeyUsage();
+                    if (ku == null || ku.length <= 5 || !ku[5]) return false; // nema keyCertSign
                     try {
                         x509.checkValidity();
-                        return true;
                     } catch (CertificateException e) {
                         return false;
                     }
-                })
-                .map(cert -> new IssuingCertificateDTO(
-                        cert.getSerial().toString(),
-                        cert.getX509Certificate().getSubjectX500Principal().getName()
-                ))
-                .collect(Collectors.toList());
-    }
-
-    public List<IssuingCertificateDTO> getIssuingCertificatesForUser(String userId) {
-        User user = userRepository.findByKeycloakId(userId).orElse(null);
-
-        if (user == null) {
-            return Collections.emptyList();
-        }
-
-        Set<Certificate> assignedCertificates = user.getCertificates();
-
-        return assignedCertificates.stream()
-                .filter(cert -> {
-                    X509Certificate x509 = cert.getX509Certificate();
-                    if (x509 == null) {
-                        return false;
-                    }
-                    boolean isCa = x509.getBasicConstraints() != -1;
-                    try {
-                        x509.checkValidity(); // Proverava da li je istekao
-                        return isCa;
-                    } catch (CertificateException e) {
-                        return false;
-                    }
+                    return true;
                 })
                 .map(cert -> new IssuingCertificateDTO(
                         cert.getSerial(),
                         cert.getX509Certificate().getSubjectX500Principal().getName()
                 ))
+                .sorted(Comparator.comparing(IssuingCertificateDTO::getSubject, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
+
+
+//    public List<IssuingCertificateDTO> getIssuingCertificatesForUser(String userId) {
+//        User user = userRepository.findByKeycloakId(userId).orElse(null);
+//
+//        if (user == null) {
+//            return Collections.emptyList();
+//        }
+//
+//        Set<Certificate> assignedCertificates = user.getCertificates();
+//
+//        return assignedCertificates.stream()
+//                .filter(cert -> cert.getStatus() == CertificateStatus.VALID)
+//                .filter(cert -> {
+//                    X509Certificate x509 = cert.getX509Certificate();
+//                    if (x509 == null) {
+//                        return false;
+//                    }
+//                    boolean isCa = x509.getBasicConstraints() != -1;
+//                    try {
+//                        x509.checkValidity(); // Proverava da li je istekao
+//                        return isCa;
+//                    } catch (CertificateException e) {
+//                        return false;
+//                    }
+//                })
+//                .map(cert -> new IssuingCertificateDTO(
+//                        cert.getSerial(),
+//                        cert.getX509Certificate().getSubjectX500Principal().getName()
+//                ))
+//                .collect(Collectors.toList());
+//    }
+    public List<IssuingCertificateDTO> getIssuingCertificatesForUser(String userId) {
+        User user = userRepository.findByKeycloakId(userId).orElse(null);
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        return user.getCertificates().stream()
+                .filter(cert -> cert.getStatus() == CertificateStatus.VALID)   // samo važeći
+                .filter(cert -> cert.getX509Certificate() != null)             // mora postojati X509 objekat
+                .filter(cert -> !isRevoked(cert))
+                .filter(cert -> {
+                    X509Certificate x509 = cert.getX509Certificate();
+
+                    // mora biti CA sertifikat
+                    if (x509.getBasicConstraints() == -1) return false;
+
+                    // mora imati pravo da potpisuje druge (keyCertSign)
+                    boolean[] ku = x509.getKeyUsage();
+                    if (ku == null || ku.length <= 5 || !ku[5]) return false;
+
+                    // mora biti još uvek važeći (nije istekao)
+                    try {
+                        x509.checkValidity();
+                    } catch (CertificateException e) {
+                        return false;
+                    }
+
+                    return true;
+                })
+                .map(cert -> new IssuingCertificateDTO(
+                        cert.getSerial(),
+                        cert.getX509Certificate().getSubjectX500Principal().getName()
+                ))
+                .sorted(Comparator.comparing(IssuingCertificateDTO::getSubject, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+    private boolean isCaCert(X509Certificate c) throws Exception {
+        byte[] bc = c.getExtensionValue(Extension.basicConstraints.getId());
+        if (bc == null) return false;
+        BasicConstraints bcExt = BasicConstraints.getInstance(
+                JcaX509ExtensionUtils.parseExtensionValue(bc));
+        return bcExt.isCA();
+    }
+
+    private String pickSigAlg(PrivateKey issuerKey) {
+        String alg = issuerKey.getAlgorithm(); // "RSA" ili "EC"
+        return "EC".equalsIgnoreCase(alg) ? "SHA256withECDSA" : "SHA256withRSA";
+    }
+
+    // za sada stub; koristi se u filtrima/validaciji
+    private boolean isRevoked(Certificate cert) {
+        return cert.getStatus() == CertificateStatus.REVOKED;
+    }
+
 }

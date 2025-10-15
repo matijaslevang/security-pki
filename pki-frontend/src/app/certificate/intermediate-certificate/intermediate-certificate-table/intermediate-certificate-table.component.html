@@ -26,7 +26,7 @@
           <td>{{ chain.rootCertificate.validFrom | date:'dd.MM.yyyy' }}</td>
           <td>{{ chain.rootCertificate.validTo | date:'dd.MM.yyyy' }}</td>
           <td>
-            <button (click)="downloadCertificate(chain.rootCertificate.serialNumber)">Download</button>
+            <button *ngIf="chain.rootCertificate.status === 'VALID'" (click)="downloadCertificate(chain.rootCertificate.serialNumber)">Download</button>
           </td>
         </tr>
         <tr *ngFor="let issuedCert of chain.issuedCertificates" class="issued-cert">
@@ -36,7 +36,7 @@
           <td>{{ issuedCert.validFrom | date:'dd.MM.yyyy' }}</td>
           <td>{{ issuedCert.validTo | date:'dd.MM.yyyy' }}</td>
           <td>
-            <button (click)="downloadCertificate(issuedCert.serialNumber)">Download</button>
+            <button *ngIf="issuedCert.status === 'VALID'" (click)="downloadCertificate(issuedCert.serialNumber)">Download</button>
           </td>
         </tr>
       </tbody>

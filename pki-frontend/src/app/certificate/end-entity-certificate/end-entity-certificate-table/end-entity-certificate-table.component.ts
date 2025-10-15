@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CertificateService } from '../../certificate.service';
 import { KeycloakService } from 'keycloak-angular';
+import { MatDialog } from '@angular/material/dialog';
+import { RevocationDialogComponent } from '../../revocation-dialog/revocation-dialog.component';
 
 @Component({
   selector: 'app-end-entity-certificate-table',
@@ -14,8 +16,8 @@ export class EndEntityCertificateTableComponent implements OnInit {
 
   constructor(
     private certificateService: CertificateService,
-    private keycloakService: KeycloakService
-  ) { }
+    private keycloakService: KeycloakService,
+    private dialog: MatDialog) {}
 
   async ngOnInit(): Promise<void> {
     await this.loadUserRole();

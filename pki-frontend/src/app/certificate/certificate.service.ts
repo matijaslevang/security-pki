@@ -33,6 +33,11 @@ export class CertificateService {
     return this.httpClient.get<IssuingCertificate[]>(`${this.url}/all-issuing-certificates`);
   }
 
+
+  revokeCertificate(serial: string, reason: number, comment: string = ''): Observable<void> {
+    return this.httpClient.post<void>(`${this.url}/${serial}/revoke`, { reason, comment });
+  }
+
   getEligibleUsers() {
     const params = { roles: 'admin-user,ca-user' }; 
     return this.httpClient.get<KcUser[]>('/iam/users', { params });

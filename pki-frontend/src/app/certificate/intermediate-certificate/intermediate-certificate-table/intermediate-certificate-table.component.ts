@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CertificateChain } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
-
+import { RevocationDialogComponent } from '../../revocation-dialog/revocation-dialog.component';
+import { MatDialog } from '@angular/material/dialog';
 @Component({
   selector: 'app-intermediate-certificate-table',
   templateUrl: './intermediate-certificate-table.component.html',
@@ -10,7 +11,7 @@ import { CertificateService } from '../../certificate.service';
 export class IntermediateCertificateTableComponent implements OnInit { 
   chains: CertificateChain[] = [];
 
-  constructor(private certificateService: CertificateService) { }
+  constructor(private certificateService: CertificateService, private dialog: MatDialog) { }
 
   ngOnInit(): void {
     this.loadChains();
@@ -46,4 +47,14 @@ export class IntermediateCertificateTableComponent implements OnInit {
       }
     });
   }
+  revoke(serial: string): void {
+  const ref = this.dialog.open(RevocationDialogComponent, { data: { serial } });
+  ref.afterClosed().subscribe(res => {
+    if (!res) return;
+    this.certificateService.revokeCertificate(serial, res.reason, res.comment).subscribe({
+      next: () => this.loadChains(),
+      error: err => console.error('revoke failed', err)
+    });
+  });
+}
 }

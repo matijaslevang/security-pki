@@ -23,7 +23,7 @@
         <td>{{ cert.validFrom | date:'dd.MM.yyyy' }}</td>
         <td>{{ cert.validTo | date:'dd.MM.yyyy' }}</td>
         <td>
-          <button (click)="downloadCertificate(cert.serialNumber)">Download</button>
+          <button *ngIf="cert.status === 'VALID'" (click)="downloadCertificate(cert.serialNumber)">Download</button>
         </td>
       </tr>
     </tbody>
