@@ -25,6 +25,7 @@ export interface CertificateInfo {
   validFrom: string;
   validTo: string;
   status: CertificateStatus;
+  isCa: boolean;
 }
 
 export interface CertificateChain {

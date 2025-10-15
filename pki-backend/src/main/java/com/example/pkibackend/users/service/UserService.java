@@ -1,7 +1,10 @@
 package com.example.pkibackend.users.service;
 
 import com.example.pkibackend.certificates.dtos.IssuerDTO;
+import com.example.pkibackend.certificates.dtos.UserDTO;
+import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.User;
+import com.example.pkibackend.certificates.repository.CertificateRepository;
 import com.example.pkibackend.certificates.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,17 +16,23 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
     private final RestTemplate rest = new RestTemplate();
+
+    @Autowired
+    private CertificateRepository certificateRepository;
 
     @Value("${env_keycloak_url}")
     private String keycloakUrl;
@@ -104,5 +113,27 @@ public class UserService {
 
     public User save(User data) {
         return this.userRepository.save(data);
+    }
+
+
+
+    public List<UserDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(user -> new UserDTO(user.getId(),
+                        user.getKeycloakId(), // Vraćamo i keycloakId
+                        String.format("%s %s (%s)", user.getFirstname(), user.getLastname(), user.getEmail()), user.getOrganization()) )
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void assignCertificateToUser(Integer userId, String serialNumber) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Certificate certificate = certificateRepository.findById(serialNumber)
+                .orElseThrow(() -> new RuntimeException("Certificate not found with serial number: " + serialNumber));
+
+        user.getCertificates().add(certificate);
+        userRepository.save(user);
     }
 }

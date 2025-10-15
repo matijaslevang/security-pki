@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class JwtUserFilter extends OncePerRequestFilter {
@@ -25,22 +28,27 @@ public class JwtUserFilter extends OncePerRequestFilter {
         try {
             JwtAuthenticationToken token = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
+            if (token == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String email = String.valueOf(token.getTokenAttributes().get("email"));
             User user = this.userService.findUserByEmail(email);
 
-            // new user detected, save data
             if (user == null) {
                 String keycloakId = String.valueOf(token.getTokenAttributes().get("sub"));
                 String firstname = String.valueOf(token.getTokenAttributes().get("given_name"));
                 String lastname = String.valueOf(token.getTokenAttributes().get("family_name"));
+                String organization = String.valueOf(token.getTokenAttributes().get("organization"));
+                String department = String.valueOf(token.getTokenAttributes().get("department"));
 
-                // TODO: CHANGE
-                String organization = (String) token.getTokenAttributes().get("organization");
-                String department = (String) token.getTokenAttributes().get("department");
-                this.userService.save(new User(null, keycloakId, email, firstname, lastname, "test", "test"));
+
+                this.userService.save(new User(null, keycloakId, email, firstname, lastname, organization, department, new HashSet<>()));
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("Unable to save user");
+            // Logujte grešku umesto da je bacate, da ne biste prekinuli filter chain
+            logger.error("Error processing JWT user filter", e);
         }
 
         filterChain.doFilter(request, response);

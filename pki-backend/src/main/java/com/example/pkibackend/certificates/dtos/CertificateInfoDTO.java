@@ -13,9 +13,10 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CertificateInfoDTO {
-    private BigInteger serialNumber;
+    private String serialNumber;
     private String subject;
     private String issuer;
     private Date validFrom;
     private Date validTo;
+    private Boolean isCa;
 }
