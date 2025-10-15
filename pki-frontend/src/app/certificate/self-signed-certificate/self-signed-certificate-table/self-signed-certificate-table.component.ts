@@ -3,7 +3,7 @@ import { CertificateChain, CertificateChainDisplay, CertificateInfo, Certificate
 import { CertificateService } from '../../certificate.service';
 import { AssignCertificateFormComponent } from '../../../auth/assign-intermediate-certificate/assign-intermediate-certificate.component';
 import { MatDialog } from '@angular/material/dialog';
-
+import { RevocationDialogComponent } from '../../revocation-dialog/revocation-dialog.component';
 @Component({
   selector: 'app-self-signed-certificate-table',
   templateUrl: './self-signed-certificate-table.component.html',
@@ -12,7 +12,7 @@ import { MatDialog } from '@angular/material/dialog';
 export class SelfSignedCertificateTableComponent implements OnInit {
 
  chains: CertificateChainDisplay[] = [];
-CertificateStatus: any;
+ CertificateStatus: any;
 
   constructor(private certificateService: CertificateService, private dialog: MatDialog) { }
 
@@ -50,8 +50,15 @@ CertificateStatus: any;
     });
   }
 
-  revokeCertificate(arg0: CertificateInfo) {
-    throw new Error('Method not implemented.');
+  revokeCertificate(cert: CertificateInfo): void {
+    const ref = this.dialog.open(RevocationDialogComponent, { data: { serial: cert.serialNumber } });
+    ref.afterClosed().subscribe(res => {
+      if (!res) return;
+      this.certificateService.revokeCertificate(cert.serialNumber, res.reason, res.comment).subscribe({
+        next: () => this.loadAllChains(),
+        error: err => console.error('revoke failed', err)
+      });
+    });
   }
 
   openAssignDialog(certificateToAssign: CertificateInfo): void {
@@ -67,4 +74,5 @@ CertificateStatus: any;
       }
     });
   }
+  
 }

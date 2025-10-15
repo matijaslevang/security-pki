@@ -6,6 +6,7 @@ import com.example.pkibackend.certificates.model.Issuer;
 import com.example.pkibackend.certificates.model.Template;
 import com.example.pkibackend.certificates.model.User;
 import com.example.pkibackend.certificates.service.CertificateService;
+import com.example.pkibackend.certificates.service.CrlService;
 import com.example.pkibackend.certificates.service.IssuerService;
 import com.example.pkibackend.certificates.service.TemplateService;
 import com.example.pkibackend.users.service.UserService;
@@ -14,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,6 +41,9 @@ public class CertificateController {
 
     @Autowired
     private TemplateService templateService;
+
+    @Autowired
+    private CrlService crlService;
 
     @PostMapping(value="/selfsigned", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROLE_admin-user')")
@@ -82,6 +87,35 @@ public class CertificateController {
         }
     }
 
+    @PostMapping("/{serial}/revoke")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> revoke(@PathVariable String serial,
+                                    @RequestBody RevocationDTO body,
+                                    org.springframework.security.core.Authentication auth,
+                                    Principal p) {
+        try {
+            boolean isAdmin = auth.getAuthorities().stream()
+                    .anyMatch(a -> "ROLE_admin-user".equals(a.getAuthority()));
+            certificateService.revoke(serial, body.getReason(), p.getName(), isAdmin);
+            return ResponseEntity.ok().build();
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(403).body("Not allowed");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/crl/latest", produces = "application/pkix-crl")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<byte[]> getLatestCrl() {
+        byte[] der = crlService.getLatestCrlDer();
+        if (der == null || der.length == 0) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "inline; filename=\"crl.der\"")
+                .body(der);
+    }
     @GetMapping("/{serialNumber}/download")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> downloadCertificateAsKeyStore(
@@ -90,6 +124,7 @@ public class CertificateController {
 
         try {
             // principal.getName() će vratiti 'sub' claim iz JWT tokena (korisnički UUID)
+
             String userIdAsPassword = principal.getName();
 
             byte[] keyStoreBytes = certificateService.getCertificateAsKeyStore(serialNumber, userIdAsPassword);

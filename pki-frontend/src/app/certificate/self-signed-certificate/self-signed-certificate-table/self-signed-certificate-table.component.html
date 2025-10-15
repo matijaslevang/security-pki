@@ -40,12 +40,12 @@
           </td>
           <td>{{ row.certificate.serialNumber }}</td>
           <td class="actions-cell">
-            <button class="btn-download" (click)="downloadCertificate(row.certificate.serialNumber)">Download</button>
+            <button *ngIf="row.certificate.status === 'VALID'" class="btn-download" (click)="downloadCertificate(row.certificate.serialNumber)">Download</button>
             <button *ngIf="row.certificate.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(row.certificate)">Revoke</button>
             
             <!-- NOVO DUGME -->
             <button 
-              *ngIf="isCa(row) && row.depth > 0"
+              *ngIf="row.certificate.status === 'VALID' && isCa(row) && row.depth > 0"
               class="btn-assign"
               (click)="openAssignDialog(row.certificate)">
               Assign

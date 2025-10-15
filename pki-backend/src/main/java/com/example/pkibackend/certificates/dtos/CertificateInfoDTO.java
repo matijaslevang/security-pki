@@ -1,5 +1,6 @@
 package com.example.pkibackend.certificates.dtos;
 
+import com.example.pkibackend.certificates.model.enums.CertificateStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,4 +20,5 @@ public class CertificateInfoDTO {
     private Date validFrom;
     private Date validTo;
     private Boolean isCa;
+    private CertificateStatus status;
 }
