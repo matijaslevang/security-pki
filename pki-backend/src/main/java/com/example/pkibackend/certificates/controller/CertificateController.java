@@ -179,4 +179,17 @@ public class CertificateController {
         return new ResponseEntity<>(dtos, HttpStatus.OK);
     }
 
+    @GetMapping("/my-issuing-certificates")
+    @PreAuthorize("hasAuthority('ROLE_ca-user')")
+    public ResponseEntity<List<IssuingCertificateDTO>> getMyIssuingCertificates(Principal principal) {
+        try {
+            String userId = principal.getName();
+            List<IssuingCertificateDTO> certificates = certificateService.getIssuingCertificatesForUser(userId);
+            return new ResponseEntity<>(certificates, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

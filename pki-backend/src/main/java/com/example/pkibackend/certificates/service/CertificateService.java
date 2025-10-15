@@ -4,8 +4,10 @@ import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.Issuer;
 import com.example.pkibackend.certificates.model.Subject;
+import com.example.pkibackend.certificates.model.User;
 import com.example.pkibackend.certificates.model.enums.CertificateStatus;
 import com.example.pkibackend.certificates.repository.CertificateRepository;
+import com.example.pkibackend.certificates.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.CertIOException;
@@ -43,6 +45,9 @@ public class CertificateService {
 
     @Autowired
     private CertificateRepository certificateRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @PostConstruct
     public void init() {
@@ -94,16 +99,13 @@ public class CertificateService {
         }
 
         BigInteger serial;
-        UUID uuid;
-        String tempSerial;
         do {
-            uuid = UUID.randomUUID();
+            UUID uuid = UUID.randomUUID();
             serial = new BigInteger(uuid.toString().replace("-", ""), 16);
             if (serial.signum() < 0) {
                 serial = serial.negate(); // ensure positive serial number
             }
-            tempSerial = uuid.toString().replace("-", "");
-        } while (getCertificate(tempSerial) != null);
+        } while (certificateRepository.existsById(serial.toString()));
 
         Subject subject = subjectService.createIfNotExist(createCertificateDTO.getSubjectDto());
 
@@ -166,14 +168,16 @@ public class CertificateService {
             throw new RuntimeException(e);
         }
 
-        String idSerial = uuid.toString().replace("-", "");
-
-        Certificate certificateWrapper = new Certificate(idSerial, subject.getId(), issuer.getUserUUID(), certificate);
-
-        // TODO: further encrypt certificate
+        Certificate certificateWrapper = new Certificate();
+        certificateWrapper.setSerial(serial.toString());
+        certificateWrapper.setSubjectId(subject.getId());
+        certificateWrapper.setIssuerId(issuer.getUserUUID());
+        certificateWrapper.setX509Certificate(certificate);
 
         return certificateRepository.save(certificateWrapper);
     }
+
+
 
     public Certificate findCertificateByIssuerAndSubject(Long subjectId, String issuerId) {
         return certificateRepository.findByIssuerIdAndSubjectId(issuerId, subjectId);
@@ -240,56 +244,51 @@ public class CertificateService {
     private CertificateInfoDTO mapCertificateToDTO(Certificate certificate) {
         X509Certificate x509Cert = certificate.getX509Certificate();
         return new CertificateInfoDTO(
-                x509Cert.getSerialNumber(),
+                x509Cert.getSerialNumber().toString(),
                 x509Cert.getSubjectX500Principal().getName(), // Dobijamo Subject
                 x509Cert.getIssuerX500Principal().getName(),  // Dobijamo Issuer
                 x509Cert.getNotBefore(), // Važi od
-                x509Cert.getNotAfter()   // Važi do
+                x509Cert.getNotAfter() ,// Važi do
+                x509Cert.getBasicConstraints() != -1
         );
     }
 
     public List<CertificateChainDTO> getCertificateChainsForCaUser(String caUserId) {
-        // 1. Dobavi identitet CA korisnika (njegov X.500 naziv)
-        Issuer caUserAsIssuer = issuerService.getIssuer(caUserId);
+        User caUser = userRepository.findByKeycloakId(caUserId).orElse(null);
 
-        if (caUserAsIssuer == null) {
-            System.out.println("Korisnik sa UUID " + caUserId + " nije pronađen kao issuer. Vraćam praznu listu.");
-            return Collections.emptyList(); // Vraća praznu listu umesto da puca
+        if (caUser == null) {
+            System.out.println("User with Keycloak ID " + caUserId + " not found in local DB.");
+            return Collections.emptyList();
         }
-        String caUserSubjectName = caUserAsIssuer.getX500Name().toString();
 
-        // 2. Pronađi SVE sertifikate u sistemu. U realnom sistemu bi ovo bilo optimizovano.
-        List<Certificate> allCertificatesInSystem = certificateRepository.findAll();
+        Set<Certificate> assignedCertificates = caUser.getCertificates();
 
-        // 3. Filtriraj i pronađi Intermediate CA sertifikate koji pripadaju ovom korisniku
-        List<Certificate> userIntermediateCaCerts = allCertificatesInSystem.stream()
+        List<Certificate> userCaCerts = assignedCertificates.stream()
                 .filter(cert -> {
                     X509Certificate x509 = cert.getX509Certificate();
-                    boolean subjectMatches = x509.getSubjectX500Principal().getName().equals(caUserSubjectName);
-                    boolean isCa = x509.getBasicConstraints() != -1; // Proverava da li je CA sertifikat
-                    boolean isNotSelfSigned = !x509.getSubjectX500Principal().equals(x509.getIssuerX500Principal());
-
-                    return subjectMatches && isCa && isNotSelfSigned;
+                    if (x509 == null) return false;
+                    // Ispravka: Pronalazimo SVE CA sertifikate dodeljene korisniku,
+                    // bez obzira da li su self-signed (Root) ili ne (Intermediate).
+                    return x509.getBasicConstraints() != -1;
                 })
                 .collect(Collectors.toList());
 
-        // 4. Za svaki Intermediate sertifikat, pronađi sertifikate koje je on izdao (end-entity)
-        return userIntermediateCaCerts.stream()
-                .map(intermediateCert -> {
-                    CertificateInfoDTO intermediateDto = mapCertificateToDTO(intermediateCert);
+        List<Certificate> allCertificatesInSystem = certificateRepository.findAll();
 
-                    // Pronađi sve end-entity sertifikate koje je ovaj Intermediate CA izdao
-                    List<CertificateInfoDTO> endEntities = allCertificatesInSystem.stream()
+        return userCaCerts.stream()
+                .map(caCert -> {
+                    CertificateInfoDTO caDto = mapCertificateToDTO(caCert);
+
+                    List<CertificateInfoDTO> issuedCertificates = allCertificatesInSystem.stream()
                             .filter(cert -> {
-                                // Issuer end-entity sertifikata mora da odgovara Subjectu našeg Intermediate sertifikata
-                                return cert.getX509Certificate().getIssuerX500Principal().getName().equals(intermediateDto.getSubject());
+                                if (cert.getX509Certificate() == null || cert.getX509Certificate().getIssuerX500Principal() == null) return false;
+                                // Pronalazimo sve sertifikate koje je ovaj CA sertifikat izdao
+                                return cert.getX509Certificate().getIssuerX500Principal().getName().equals(caDto.getSubject());
                             })
                             .map(this::mapCertificateToDTO)
                             .collect(Collectors.toList());
 
-                    // 5. Sklopi DTO objekte za slanje frontendu
-                    // Intermediate sertifikat je sada "root" našeg lanca/tabele
-                    return new CertificateChainDTO(intermediateDto, endEntities);
+                    return new CertificateChainDTO(caDto, issuedCertificates);
                 })
                 .collect(Collectors.toList());
     }
@@ -356,6 +355,36 @@ public class CertificateService {
                 })
                 .map(cert -> new IssuingCertificateDTO(
                         cert.getSerial().toString(),
+                        cert.getX509Certificate().getSubjectX500Principal().getName()
+                ))
+                .collect(Collectors.toList());
+    }
+
+    public List<IssuingCertificateDTO> getIssuingCertificatesForUser(String userId) {
+        User user = userRepository.findByKeycloakId(userId).orElse(null);
+
+        if (user == null) {
+            return Collections.emptyList();
+        }
+
+        Set<Certificate> assignedCertificates = user.getCertificates();
+
+        return assignedCertificates.stream()
+                .filter(cert -> {
+                    X509Certificate x509 = cert.getX509Certificate();
+                    if (x509 == null) {
+                        return false;
+                    }
+                    boolean isCa = x509.getBasicConstraints() != -1;
+                    try {
+                        x509.checkValidity(); // Proverava da li je istekao
+                        return isCa;
+                    } catch (CertificateException e) {
+                        return false;
+                    }
+                })
+                .map(cert -> new IssuingCertificateDTO(
+                        cert.getSerial(),
                         cert.getX509Certificate().getSubjectX500Principal().getName()
                 ))
                 .collect(Collectors.toList());

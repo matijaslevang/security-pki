@@ -12,27 +12,44 @@
         <tr>
           <th>Subject (with hierarchy)</th>
           <th>Type</th>
+          <th>Status</th>
           <th>Serial Number</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let row of chain.chainRows">
-          <td [style.padding-left.px]="10 + row.depth * 25">
+          <td [style.padding-left.px]="10 + row.depth * 25" class="subject-cell">
              <span *ngIf="row.depth > 0">└─ </span>
             {{ row.certificate.subject }}
           </td>
           <td>
              <strong *ngIf="row.depth === 0">ROOT CA</strong>
              <ng-container *ngIf="row.depth > 0">
-                <span *ngIf="isCa(row, chain)">INTERMEDIATE CA</span>
-                <span *ngIf="!isCa(row, chain)">End-Entity</span>
+                <span *ngIf="isCa(row)">INTERMEDIATE CA</span>
+                <span *ngIf="!isCa(row)">End-Entity</span>
              </ng-container>
           </td>
-          <td>{{ row.certificate.serialNumber }}</td>
           <td>
+            <span [ngClass]="{
+              'status-valid': row.certificate.status === 'VALID',
+              'status-revoked': row.certificate.status === 'REVOKED'
+            }">
+              {{ row.certificate.status }}
+            </span>
+          </td>
+          <td>{{ row.certificate.serialNumber }}</td>
+          <td class="actions-cell">
             <button class="btn-download" (click)="downloadCertificate(row.certificate.serialNumber)">Download</button>
             <button *ngIf="row.certificate.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(row.certificate)">Revoke</button>
+            
+            <!-- NOVO DUGME -->
+            <button 
+              *ngIf="isCa(row) && row.depth > 0"
+              class="btn-assign"
+              (click)="openAssignDialog(row.certificate)">
+              Assign
+            </button>
           </td>
         </tr>
       </tbody>

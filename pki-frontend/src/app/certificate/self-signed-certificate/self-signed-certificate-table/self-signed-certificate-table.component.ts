@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CertificateChain, CertificateChainDisplay, CertificateInfo, CertificateRow } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
+import { AssignCertificateFormComponent } from '../../../auth/assign-intermediate-certificate/assign-intermediate-certificate.component';
+import { MatDialog } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-self-signed-certificate-table',
@@ -12,7 +14,7 @@ export class SelfSignedCertificateTableComponent implements OnInit {
  chains: CertificateChainDisplay[] = [];
 CertificateStatus: any;
 
-  constructor(private certificateService: CertificateService) { }
+  constructor(private certificateService: CertificateService, private dialog: MatDialog) { }
 
   ngOnInit(): void {
     this.loadAllChains();
@@ -25,14 +27,8 @@ CertificateStatus: any;
     });
   }
 
-  // Pomoćna funkcija da proverimo da li je sertifikat CA
-  // Gleda da li je on issuer nekom drugom sertifikatu u istom lancu
-  isCa(currentRow: CertificateRow, chain: CertificateChainDisplay): boolean {
-      if (currentRow.certificate.status.toString() === 'REVOKED') return false;
-      return chain.chainRows.some(
-          otherRow => otherRow.certificate.issuer === currentRow.certificate.subject &&
-                      otherRow.certificate.serialNumber !== currentRow.certificate.serialNumber
-      );
+  isCa(currentRow: CertificateRow): boolean {
+    return currentRow.certificate.isCa;
   }
 
   // Metoda za download je ista kao i pre, nema potrebe da se menja
@@ -56,5 +52,19 @@ CertificateStatus: any;
 
   revokeCertificate(arg0: CertificateInfo) {
     throw new Error('Method not implemented.');
+  }
+
+  openAssignDialog(certificateToAssign: CertificateInfo): void {
+    const dialogRef = this.dialog.open(AssignCertificateFormComponent, {
+      width: '500px',
+      disableClose: true,
+      data: { certificateToAssign: certificateToAssign }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        console.log('Certificate was assigned successfully!');
+      }
+    });
   }
 }

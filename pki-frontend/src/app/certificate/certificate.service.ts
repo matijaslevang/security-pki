@@ -66,5 +66,9 @@ export class CertificateService {
     return this.httpClient.get<CertTemplate[]>(this.url + "/templates/" + serial);
   }
 
+  getAssignableIntermediateCertificates(): Observable<IssuingCertificate[]> {
+    return this.httpClient.get<IssuingCertificate[]>(`${this.url}/intermediate/assignable`);
+  }
+
 }
 export interface KcUser { id:string; username:string; email:string; firstName:string; lastName:string; }

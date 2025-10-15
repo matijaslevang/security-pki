@@ -1,9 +1,7 @@
 package com.example.pkibackend.certificates.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +9,7 @@ import lombok.Setter;
 
 import java.math.BigInteger;
 import java.security.cert.X509Certificate;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -30,4 +29,8 @@ public class Certificate {
 
     @Column(nullable = false)
     private X509Certificate x509Certificate;
+
+    @ManyToMany(mappedBy = "certificates", fetch = FetchType.LAZY)
+    @JsonIgnore // Sprečava beskonačnu rekurziju prilikom serijalizacije
+    private Set<User> users;
 }
