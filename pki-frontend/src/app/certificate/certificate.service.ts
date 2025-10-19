@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../env/environment';
 import { Observable } from 'rxjs';
-import { CertificateChain, CertificateChainDisplay, CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
+import { CertificateChain, CertificateChainDisplay, CreateCertCsrUpload,CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
 
 @Injectable({
   providedIn: 'root'
@@ -40,6 +40,18 @@ export class CertificateService {
     fd.append('endDate', endDate.toISOString());
     fd.append('csr', file, file.name);
     return this.httpClient.post<boolean>(`${this.url}/csr/upload`, fd);
+  }
+  submitCsrWithExtensions(dto: CreateCertCsrUpload, file: File) {
+    const fd = new FormData();
+
+    // Kreiraj Blob od DTO objekta. Backend će ga parsirati iz JSON-a.
+    const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' });
+    fd.append('dto', dtoBlob);
+
+    // Dodaj i sam fajl
+    fd.append('csr', file, file.name);
+
+    return this.httpClient.post<boolean>(`${this.url}/csr/upload-extension`, fd);
   }
 
   revokeCertificate(serial: string, reason: number, comment: string = ''): Observable<void> {
