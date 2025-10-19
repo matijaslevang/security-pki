@@ -20,8 +20,7 @@ import { EndEntityCertificateTableComponent } from './end-entity-certificate/end
 import { EndEntityCertificateFormComponent } from './end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
 import { CreateTemplateFormComponent } from './templates/create-template-form/create-template-form.component';
 import { RevocationDialogComponent } from './revocation-dialog/revocation-dialog.component';
-
-
+import { MatTabsModule } from '@angular/material/tabs';
 
 @NgModule({
   exports: [
@@ -53,6 +52,7 @@ import { RevocationDialogComponent } from './revocation-dialog/revocation-dialog
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
+    MatTabsModule,
     BrowserAnimationsModule,
     MatSelectModule,
     MatOptionModule

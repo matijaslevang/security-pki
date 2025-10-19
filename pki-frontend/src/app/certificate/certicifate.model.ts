@@ -10,7 +10,18 @@ export interface CreateCertificate {
     keyUsageValues: boolean[],
     extKeyUsageValues: boolean[],
 }
- 
+
+export interface CreateCertCsrUpload {
+    issuerSerialNumber: string,
+    selfSigned: boolean,
+    intermediate: boolean,
+    skiaki: boolean,
+    sanString: string,
+    startDate: Date,
+    endDate: Date,
+    keyUsageValues: boolean[],
+    extKeyUsageValues: boolean[],
+}
 export interface Subject {
     commonName: string,
     surname: string,

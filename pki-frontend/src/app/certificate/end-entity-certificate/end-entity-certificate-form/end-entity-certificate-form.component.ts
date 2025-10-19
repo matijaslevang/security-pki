@@ -1,9 +1,12 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatTabChangeEvent } from '@angular/material/tabs';
 import { Observable } from 'rxjs';
-import { CreateCertificate, IssuingCertificate } from '../../certicifate.model';
+import { CreateCertificate, IssuingCertificate, CreateCertCsrUpload } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
+
+type Mode = 'auto' | 'csr';
 
 @Component({
   selector: 'app-end-entity-certificate-form',
@@ -12,8 +15,8 @@ import { CertificateService } from '../../certificate.service';
 })
 export class EndEntityCertificateFormComponent implements OnInit {
   issuingCertificates$!: Observable<IssuingCertificate[]>;
-
-  form: FormGroup = new FormGroup({
+  // AUTO-GENERATE forma
+  formAuto: FormGroup = new FormGroup({
     issuerSerialNumber: new FormControl(null, Validators.required),
     startDate: new FormControl(new Date(), Validators.required),
     endDate: new FormControl(null, Validators.required),
@@ -37,7 +40,31 @@ export class EndEntityCertificateFormComponent implements OnInit {
     codeSigning: new FormControl(false),
     emailProtection: new FormControl(false),
     timeStamping: new FormControl(false)
-  }, { validators: [EndEntityCertificateFormComponent.dateRangeValidator] });
+  }, { validators: [EndEntityCertificateFormComponent.dateRangeValidator('startDate', 'endDate')] });
+
+  mode: Mode = 'auto';
+
+  // CSR forma
+  formCsr = new FormGroup({
+    issuerSerialNumber: new FormControl<string | null>(null, Validators.required),
+    startDate: new FormControl<Date | null>(new Date(), Validators.required),
+    endDate: new FormControl<Date | null>(null, Validators.required),
+    csrFile: new FormControl<File | null>(null, Validators.required),
+    sanString: new FormControl(''),
+    skiaki: new FormControl(false),
+    digitalSignature: new FormControl(false),
+    nonRepudiation: new FormControl(false),
+    keyEncipherment: new FormControl(false),
+    dataEncipherment: new FormControl(false),
+    keyAgreement: new FormControl(false),
+    cRLSign: new FormControl(false),
+    serverAuth: new FormControl(false),
+    clientAuth: new FormControl(false),
+    codeSigning: new FormControl(false),
+    emailProtection: new FormControl(false),
+    timeStamping: new FormControl(false)
+  }, { validators: [EndEntityCertificateFormComponent.dateRangeValidator('startDate', 'endDate')] });
+
 
   constructor(
     private certificateService: CertificateService,
@@ -51,45 +78,124 @@ export class EndEntityCertificateFormComponent implements OnInit {
       : this.certificateService.getIssuingCertificates();
   }
 
-  static dateRangeValidator(control: AbstractControl): ValidationErrors | null {
-    const s = control.get('startDate')?.value;
-    const e = control.get('endDate')?.value;
-    return (s && e && new Date(s) >= new Date(e)) ? { endBeforeStart: true } : null;
+  static dateRangeValidator(startKey: string, endKey: string) {
+    return (group: AbstractControl): ValidationErrors | null => {
+      const s = group.get(startKey)?.value;
+      const e = group.get(endKey)?.value;
+      return (s && e && new Date(s) >= new Date(e)) ? { endBeforeStart: true } : null;
+    };
+  }
+
+  onTabChange(ev: MatTabChangeEvent): void {
+    this.mode = ev.index === 0 ? 'auto' : 'csr';
+  }
+
+  onCsrFileSelected(ev: Event): void {
+    const file = (ev.target as HTMLInputElement).files?.[0] ?? null;
+    this.formCsr.patchValue({ csrFile: file });
+    this.formCsr.get('csrFile')?.markAsDirty();
   }
 
   submit(): void {
-    if (!this.form.valid) { 
-      this.form.markAllAsTouched(); return; }
-    
-    const req: CreateCertificate = {
-      issuerSerialNumber: this.form.value.issuerSerialNumber, // <-- serial issuer CA sertifikata
+    if (this.mode === 'auto') {
+      if (!this.formAuto.valid) { this.formAuto.markAllAsTouched(); return; }
+      const req: CreateCertificate = {
+      issuerSerialNumber: this.formAuto.value.issuerSerialNumber, // <-- serial issuer CA sertifikata
       selfSigned: false,
       intermediate: false,
-      skiaki: !!this.form.value.skiaki,
-      sanString: this.form.value.sanString || '',
-      startDate: this.form.value.startDate,
-      endDate: this.form.value.endDate,
+      skiaki: !!this.formAuto.value.skiaki,
+      sanString: this.formAuto.value.sanString || '',
+      startDate: this.formAuto.value.startDate,
+      endDate: this.formAuto.value.endDate,
       subjectDto: {
-      commonName: this.form.value.commonName,
-      surname: this.form.value.surname,
-      givenName: this.form.value.givenName,
-      organization: this.form.value.organization,
-      department: this.form.value.department,
-      email: this.form.value.email,
-      country: this.form.value.country,
+      commonName: this.formAuto.value.commonName,
+      surname: this.formAuto.value.surname,
+      givenName: this.formAuto.value.givenName,
+      organization: this.formAuto.value.organization,
+      department: this.formAuto.value.department,
+      email: this.formAuto.value.email,
+      country: this.formAuto.value.country,
     },
-    keyUsageValues: [this.form.value.digitalSignature, this.form.value.nonRepudiation, this.form.value.keyEncipherment, this.form.value.dataEncipherment, this.form.value.keyAgreement, this.form.value.cRLSign],
-    extKeyUsageValues: [this.form.value.serverAuth, this.form.value.clientAuth, this.form.value.codeSigning, this.form.value.emailProtection, this.form.value.timeStamping]
+    keyUsageValues: [this.formAuto.value.digitalSignature, this.formAuto.value.nonRepudiation, this.formAuto.value.keyEncipherment, this.formAuto.value.dataEncipherment, this.formAuto.value.keyAgreement, this.formAuto.value.cRLSign],
+    extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
     };
-    this.certificateService.createEndEntityCertificate(req).subscribe({
-      next: ok => {
-        if (ok) this.dialogRef.close(true);
-      },
-      error: err => console.error('createEndEntityCertificate failed:', err)
-    });
+      this.certificateService.createEndEntityCertificate(req).subscribe({
+        next: ok => { if (ok) this.dialogRef.close(true); },
+        error: err => console.error('createEndEntityCertificate (auto) failed:', err)
+      });
+      return;
+    }
 
+
+    // CSR upload
+    if (!this.formCsr.valid) { this.formCsr.markAllAsTouched(); return; }
+    if (!this.formCsr.valid) {
+    this.formCsr.markAllAsTouched();
+    return;
   }
+  const formValue = this.formCsr.value;
+
+  // Izdvoj fajl iz forme
+  const file = formValue.csrFile!;
+
+  // Pripremi DTO objekat sa svim podacima
+  const req: CreateCertCsrUpload = {
+    issuerSerialNumber: formValue.issuerSerialNumber!,
+    startDate: formValue.startDate!,
+    selfSigned:false,
+    intermediate:false,
+    endDate: formValue.endDate!,
+    skiaki: !!formValue.skiaki,
+    sanString: formValue.sanString || '',
+    keyUsageValues: [
+      !!formValue.digitalSignature,
+      !!formValue.nonRepudiation,
+      !!formValue.keyEncipherment,
+      !!formValue.dataEncipherment,
+      !!formValue.keyAgreement,
+      !!formValue.cRLSign
+    ],
+    extKeyUsageValues: [
+      !!formValue.serverAuth,
+      !!formValue.clientAuth,
+      !!formValue.codeSigning,
+      !!formValue.emailProtection,
+      !!formValue.timeStamping
+    ]
+  };
+
+  // Pozovi novu servisnu metodu
+  this.certificateService.submitCsrWithExtensions(req, file).subscribe({
+    next: ok => { if (ok) this.dialogRef.close(true); },
+    error: err => console.error('submitCsrWithExtensions failed:', err)
+  });
+    // const c = this.formCsr.value;
+    // const file = c.csrFile!;
+    // const issuerSerial = c.issuerSerialNumber!;
+    // const start = c.startDate!;
+    // const end = c.endDate!;
+    
+    ////////////////////// -----------
+    
+    // const req: CreateCertCsrUpload = {
+    // issuerSerialNumber: this.formCsr.value.issuerSerialNumber, 
+    // selfSigned: false,
+    // intermediate: false,
+    // skiaki: !!this.formCsr.value.skiaki,
+    // sanString: this.formCsr.value.sanString || '',
+    // startDate: this.formCsr.value.startDate,
+    // endDate: this.formCsr.value.endDate,
+    // keyUsageValues: [this.formCsr.value.digitalSignature, this.formCsr.value.nonRepudiation, this.formCsr.value.keyEncipherment, this.formCsr.value.dataEncipherment, this.formCsr.value.keyAgreement, this.formCsr.value.cRLSign],
+    // extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
+    // }
+    ////////////////////// -----------
+    // this.certificateService.submitCsr(issuerSerial, start, end, file).subscribe({
+    //   next: ok => { if (ok) this.dialogRef.close(true); },
+    //   error: err => console.error('submitCsr failed:', err)
+    // });
+  }
+
   onCancel(): void {
     this.dialogRef.close(false);
-  } 
+  }
 }
