@@ -158,6 +158,25 @@ public class CertificateController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    @PostMapping(value = "/csr/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> uploadCsr(
+            @RequestParam("issuerSerialNumber") String issuerSerialNumber,
+            @RequestParam("startDate") String startDateIso,
+            @RequestParam("endDate") String endDateIso,
+            @RequestPart("csr") org.springframework.web.multipart.MultipartFile csrFile) {
+        try {
+            java.time.Instant start = java.time.Instant.parse(startDateIso);
+            java.time.Instant end = java.time.Instant.parse(endDateIso);
+
+            certificateService.issueFromCsr(issuerSerialNumber, start, end, csrFile.getBytes());
+            return ResponseEntity.status(HttpStatus.CREATED).body(true);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("CSR issue failed");
+        }
+    }
 
     @GetMapping("/my-chains")
     @PreAuthorize("hasAuthority('ROLE_ca-user')")

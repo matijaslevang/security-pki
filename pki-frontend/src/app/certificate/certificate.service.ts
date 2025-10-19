@@ -33,6 +33,14 @@ export class CertificateService {
     return this.httpClient.get<IssuingCertificate[]>(`${this.url}/all-issuing-certificates`);
   }
 
+  submitCsr(issuerSerialNumber: string, startDate: Date, endDate: Date, file: File) {
+    const fd = new FormData();
+    fd.append('issuerSerialNumber', issuerSerialNumber);
+    fd.append('startDate', startDate.toISOString());
+    fd.append('endDate', endDate.toISOString());
+    fd.append('csr', file, file.name);
+    return this.httpClient.post<boolean>(`${this.url}/csr/upload`, fd);
+  }
 
   revokeCertificate(serial: string, reason: number, comment: string = ''): Observable<void> {
     return this.httpClient.post<void>(`${this.url}/${serial}/revoke`, { reason, comment });

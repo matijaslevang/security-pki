@@ -1,5 +1,6 @@
 package com.example.pkibackend.certificates.service;
 
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.Issuer;
@@ -11,6 +12,8 @@ import com.example.pkibackend.certificates.repository.CertificateRepository;
 import com.example.pkibackend.certificates.repository.UserRepository;
 import com.example.pkibackend.util.BooleanListToKeyUsage;
 import jakarta.annotation.PostConstruct;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -19,20 +22,21 @@ import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.StringReader;
 import java.math.BigInteger;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.Security;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
@@ -218,12 +222,6 @@ public class CertificateService {
                 GeneralName[] sanNameList = sanList.stream().map(name -> new GeneralName(GeneralName.dNSName, name)).toArray(GeneralName[]::new);
                 GeneralNames sanNames = new GeneralNames(sanNameList);
                 certGen.addExtension(Extension.subjectAlternativeName, false, sanNames);
-//                String cdpUrl = "http://localhost:7777/api/crl/latest";
-//                DistributionPointName dpName = new DistributionPointName(
-//                        new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
-//                DistributionPoint dp = new DistributionPoint(dpName, null, null);
-//                CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[] { dp });
-//                certGen.addExtension(Extension.cRLDistributionPoints, false, cdp);
             }
 
         } catch (CertIOException e) {
@@ -231,7 +229,7 @@ public class CertificateService {
         }
 
         // CDP (CRL Distribution Points)
-        String cdpUrl = crlService.getPublicCrlUrl(); // vidi korak 5.c ispod
+        String cdpUrl = crlService.getPublicCrlUrl();
         DistributionPointName dpName = new DistributionPointName(
                 new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
         DistributionPoint dp = new DistributionPoint(dpName, null, null);
@@ -591,6 +589,145 @@ public class CertificateService {
     // za sada stub; koristi se u filtrima/validaciji
     private boolean isRevoked(Certificate cert) {
         return cert.getStatus() == CertificateStatus.REVOKED;
+    }
+
+    public Certificate issueFromCsr(String issuerSerialNumber,
+                                    Instant start, Instant end,
+                                    byte[] csrBytes) {
+
+        // 1) Nađi i validiraj CA izdavaoca
+        Certificate issuerRecord = certificateRepository
+                .findById(issuerSerialNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Issuing certificate not found."));
+        X509Certificate issuerX = issuerRecord.getX509Certificate();
+        if (issuerRecord.getStatus() == CertificateStatus.REVOKED)
+            throw new IllegalArgumentException("Issuing certificate is revoked.");
+        if (issuerX.getBasicConstraints() < 0)
+            throw new IllegalArgumentException("Issuing certificate is not a CA.");
+        boolean[] ku = issuerX.getKeyUsage();
+        if (ku == null || ku.length <= 5 || !ku[5])
+            throw new IllegalArgumentException("Issuing certificate lacks KeyCertSign.");
+        try { issuerX.checkValidity(); } catch (CertificateException e) {
+            throw new IllegalArgumentException("Issuing certificate not valid now.");
+        }
+        if (Date.from(end).after(issuerX.getNotAfter()))
+            throw new IllegalArgumentException("End date exceeds issuer validity.");
+
+        Issuer issuer = issuerService.getIssuer(issuerRecord.getIssuerId());
+        if (issuer == null) throw new IllegalStateException("Issuer owner not found.");
+
+        // 2) Parse CSR (PEM ili DER)
+        org.bouncycastle.pkcs.PKCS10CertificationRequest csr;
+        try {
+            String text = new String(csrBytes, java.nio.charset.StandardCharsets.US_ASCII);
+            if (text.contains("-----BEGIN")) {
+                try (org.bouncycastle.util.io.pem.PemReader pr =
+                             new org.bouncycastle.util.io.pem.PemReader(new java.io.StringReader(text))) {
+                    org.bouncycastle.util.io.pem.PemObject po = pr.readPemObject();
+                    csr = new org.bouncycastle.pkcs.PKCS10CertificationRequest(po.getContent());
+                }
+            } else {
+                csr = new org.bouncycastle.pkcs.PKCS10CertificationRequest(csrBytes);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid CSR content.");
+        }
+
+        // 3) Izvuci subject i public key iz CSR-a
+        org.bouncycastle.asn1.x500.X500Name subjectX = csr.getSubject();
+        java.security.PublicKey subjectPubKey;
+        try {
+            subjectPubKey = new org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest(csr).getPublicKey();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("CSR public key extract failed.");
+        }
+
+        // 4) Persistuj/nađi Subject
+        Subject s = subjectService.findByX500NameString(subjectX.toString());
+        if (s == null) {
+            s = new Subject();
+            s.setX500Name(subjectX);
+            s.setPublicKey(subjectPubKey);
+            s = subjectService.save(s); // dodaj public save u SubjectService ako ga nemaš
+        }
+
+        // 5) Napravi cert kao i do sada, ali koristi subject iz CSR-a
+        java.math.BigInteger serial;
+        do {
+            java.util.UUID uuid = java.util.UUID.randomUUID();
+            serial = new java.math.BigInteger(uuid.toString().replace("-", ""), 16);
+            if (serial.signum() < 0) serial = serial.negate();
+        } while (certificateRepository.existsById(serial.toString()));
+
+        org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder certGen =
+                new org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder(
+                        issuer.getX500Name(),
+                        serial,
+                        Date.from(start),
+                        Date.from(end),
+                        subjectX,
+                        subjectPubKey
+                );
+
+        try {
+            // basicConstraints za EE
+            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.basicConstraints, true,
+                    new org.bouncycastle.asn1.x509.BasicConstraints(false));
+            // keyUsage tipično za EE
+            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.keyUsage, true,
+                    new org.bouncycastle.asn1.x509.KeyUsage(
+                            org.bouncycastle.asn1.x509.KeyUsage.digitalSignature |
+                                    org.bouncycastle.asn1.x509.KeyUsage.keyEncipherment));
+
+            // SKI/AKI
+            JcaX509ExtensionUtils ext = null;
+            try {
+                ext = new JcaX509ExtensionUtils();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.subjectKeyIdentifier, false,
+                    ext.createSubjectKeyIdentifier(subjectPubKey));
+            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.authorityKeyIdentifier, false,
+                    ext.createAuthorityKeyIdentifier(issuer.getPublicKey()));
+
+            // CDP iz CrlService
+            String cdpUrl = crlService.getPublicCrlUrl();
+            org.bouncycastle.asn1.x509.DistributionPointName dpName = new org.bouncycastle.asn1.x509.DistributionPointName(
+                    new org.bouncycastle.asn1.x509.GeneralNames(
+                            new org.bouncycastle.asn1.x509.GeneralName(org.bouncycastle.asn1.x509.GeneralName.uniformResourceIdentifier, cdpUrl)));
+            org.bouncycastle.asn1.x509.DistributionPoint dp = new org.bouncycastle.asn1.x509.DistributionPoint(dpName, null, null);
+            org.bouncycastle.asn1.x509.CRLDistPoint cdp =
+                    new org.bouncycastle.asn1.x509.CRLDistPoint(new org.bouncycastle.asn1.x509.DistributionPoint[]{dp});
+            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.cRLDistributionPoints, false, cdp);
+        } catch (org.bouncycastle.cert.CertIOException e) {
+            throw new RuntimeException(e);
+        }
+
+        String sigAlg = pickSigAlg(issuer.getPrivateKey());
+        ContentSigner signer = null;
+        try {
+            signer = new JcaContentSignerBuilder(sigAlg)
+                    .setProvider("BC").build(issuer.getPrivateKey());
+        } catch (OperatorCreationException e) {
+            throw new RuntimeException(e);
+        }
+        org.bouncycastle.cert.X509CertificateHolder holder = certGen.build(signer);
+        X509Certificate cert;
+        try {
+            cert = new org.bouncycastle.cert.jcajce.JcaX509CertificateConverter().setProvider("BC").getCertificate(holder);
+        } catch (CertificateException e) {
+            throw new RuntimeException(e);
+        }
+
+        Certificate wrap = new Certificate();
+        wrap.setSerial(serial.toString());
+        wrap.setSubjectId(s.getId());
+        wrap.setIssuerId(issuer.getUserUUID());
+        wrap.setX509Certificate(cert);
+        wrap.setStatus(CertificateStatus.VALID);
+
+        return certificateRepository.save(wrap);
     }
 
 }
