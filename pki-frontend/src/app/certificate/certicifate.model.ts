@@ -6,10 +6,13 @@ export interface CreateCertificate {
     sanString: string,
     startDate: Date,
     endDate: Date,
-    subjectDto: Subject
+    subjectDto: Subject,
+    keyUsageValues: boolean[],
+    extKeyUsageValues: boolean[],
 }
  
 export interface Subject {
+    commonName: string,
     surname: string,
     givenName: string,
     organization: string,

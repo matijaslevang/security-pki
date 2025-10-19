@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class SubjectDTO {
+    private String commonName;
     private String surname;
     private String givenName;
     private String organization;

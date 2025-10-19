@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,4 +23,6 @@ public class CreateCertificateDTO {
     private String sanString;
     private Date startDate;
     private Date endDate;
+    private List<Boolean> keyUsageValues;
+    private List<Boolean> extKeyUsageValues;
 }

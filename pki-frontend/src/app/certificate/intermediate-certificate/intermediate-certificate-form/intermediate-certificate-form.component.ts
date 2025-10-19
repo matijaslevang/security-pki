@@ -3,7 +3,7 @@ import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators }
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../../auth/auth.service';
-import { IssuingCertificate } from '../../certicifate.model';
+import { CreateCertificate, IssuingCertificate } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
 
 @Component({
@@ -27,6 +27,7 @@ export class IntermediateCertificateFormComponent implements OnInit {
     this.form = this.fb.group({
       issuerSerialNumber: ['', Validators.required],
       subject: this.fb.group({
+        commonName: ['', Validators.required],
         givenName: ['', Validators.required],
         surname: ['', Validators.required],
         organization: ['', Validators.required],
@@ -36,6 +37,19 @@ export class IntermediateCertificateFormComponent implements OnInit {
       }),
       startDate: [new Date(), Validators.required],
       endDate: ['', Validators.required],
+      sanString: [''],
+      skiAki: [false],
+      digitalSignature: [false],
+      nonRepudiation: [false],
+      keyEncipherment: [false],
+      dataEncipherment: [false],
+      keyAgreement: [false],
+      cRLSign: [false],
+      serverAuth: [false],
+      clientAuth: [false],
+      codeSigning: [false],
+      emailProtection: [false],
+      timeStamping: [false]
     }, { validators: this.dateValidator });
   }
 
@@ -63,8 +77,8 @@ export class IntermediateCertificateFormComponent implements OnInit {
       return;
     }
 
-    const dto = {
-      issuerUuid: this.currentUserUuid,
+    const dto: CreateCertificate = {
+      //issuerUuid: this.currentUserUuid,
       issuerSerialNumber: this.form.value.issuerSerialNumber,
       subjectDto: this.form.value.subject,
       startDate: this.form.value.startDate,
@@ -72,7 +86,9 @@ export class IntermediateCertificateFormComponent implements OnInit {
       intermediate: true,
       selfSigned: false,
       skiaki: this.form.value.skiaki,
-      sanString: ''
+      sanString: this.form.value.sanString,
+      keyUsageValues: [this.form.value.digitalSignature, this.form.value.nonRepudiation, this.form.value.keyEncipherment, this.form.value.dataEncipherment, this.form.value.keyAgreement, this.form.value.cRLSign],
+      extKeyUsageValues: [this.form.value.serverAuth, this.form.value.clientAuth, this.form.value.codeSigning, this.form.value.emailProtection, this.form.value.timeStamping]
     };
 
     this.certificateService.createIntermediateCertificate(dto)

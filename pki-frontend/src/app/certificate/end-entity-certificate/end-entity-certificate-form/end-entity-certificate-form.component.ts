@@ -19,12 +19,24 @@ export class EndEntityCertificateFormComponent implements OnInit {
     endDate: new FormControl(null, Validators.required),
     sanString: new FormControl(''),
     skiaki: new FormControl(false),
+    commonName: new FormControl('', Validators.required),
     surname: new FormControl('', Validators.required),
     givenName: new FormControl('', Validators.required),
     organization: new FormControl(''),
     department: new FormControl(''),
     email: new FormControl('', Validators.email),
-    country: new FormControl('', [Validators.pattern(/^[A-Z]{2}$/)]) // ISO 3166-1 alpha-2
+    country: new FormControl('', [Validators.pattern(/^[A-Z]{2}$/)]), // ISO 3166-1 alpha-2
+    digitalSignature: new FormControl(false),
+    nonRepudiation: new FormControl(false),
+    keyEncipherment: new FormControl(false),
+    dataEncipherment: new FormControl(false),
+    keyAgreement: new FormControl(false),
+    cRLSign: new FormControl(false),
+    serverAuth: new FormControl(false),
+    clientAuth: new FormControl(false),
+    codeSigning: new FormControl(false),
+    emailProtection: new FormControl(false),
+    timeStamping: new FormControl(false)
   }, { validators: [EndEntityCertificateFormComponent.dateRangeValidator] });
 
   constructor(
@@ -58,13 +70,16 @@ export class EndEntityCertificateFormComponent implements OnInit {
       startDate: this.form.value.startDate,
       endDate: this.form.value.endDate,
       subjectDto: {
+      commonName: this.form.value.commonName,
       surname: this.form.value.surname,
       givenName: this.form.value.givenName,
       organization: this.form.value.organization,
       department: this.form.value.department,
       email: this.form.value.email,
-      country: this.form.value.country
-    }
+      country: this.form.value.country,
+    },
+    keyUsageValues: [this.form.value.digitalSignature, this.form.value.nonRepudiation, this.form.value.keyEncipherment, this.form.value.dataEncipherment, this.form.value.keyAgreement, this.form.value.cRLSign],
+    extKeyUsageValues: [this.form.value.serverAuth, this.form.value.clientAuth, this.form.value.codeSigning, this.form.value.emailProtection, this.form.value.timeStamping]
     };
     this.certificateService.createEndEntityCertificate(req).subscribe({
       next: ok => {

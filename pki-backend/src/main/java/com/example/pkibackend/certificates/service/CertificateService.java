@@ -9,6 +9,7 @@ import com.example.pkibackend.certificates.model.enums.CertificateStatus;
 import com.example.pkibackend.certificates.model.enums.RevocationReason;
 import com.example.pkibackend.certificates.repository.CertificateRepository;
 import com.example.pkibackend.certificates.repository.UserRepository;
+import com.example.pkibackend.util.BooleanListToKeyUsage;
 import jakarta.annotation.PostConstruct;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.CertIOException;
@@ -191,20 +192,15 @@ public class CertificateService {
         );
 
         try {
-            if (createCertificateDTO.isSelfSigned()) {
+            if (createCertificateDTO.isSelfSigned() || createCertificateDTO.isIntermediate()) {
                 certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
-                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.digitalSignature | KeyUsage.cRLSign));
-            } else if (createCertificateDTO.isIntermediate()) {
-
-                certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(true));
-                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(
-                        KeyUsage.keyCertSign | KeyUsage.digitalSignature | KeyUsage.cRLSign
-                ));
-
+                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | BooleanListToKeyUsage.getKeyUsageMaskFromBooleanList(createCertificateDTO.getKeyUsageValues())));
             } else {
                 certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
-                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));
+                certGen.addExtension(Extension.keyUsage, true, new KeyUsage(BooleanListToKeyUsage.getKeyUsageMaskFromBooleanList(createCertificateDTO.getKeyUsageValues())));
             }
+
+            certGen.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(BooleanListToKeyUsage.getExtKeyUsageMaskFromBooleanList(createCertificateDTO.getExtKeyUsageValues())));
 
             if (createCertificateDTO.isSkiaki()) {
                 certGen.addExtension(Extension.subjectKeyIdentifier, false,

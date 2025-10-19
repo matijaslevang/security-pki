@@ -10,6 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class IssuerDTO {
     private String uuid;
+    private String commonName;
     private String surname;
     private String givenName;
     private String organization;
