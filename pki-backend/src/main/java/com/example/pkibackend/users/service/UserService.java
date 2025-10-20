@@ -137,4 +137,9 @@ public class UserService {
         user.getCertificates().add(certificate);
         userRepository.save(user);
     }
+
+    public void addToCertList(User user, Certificate certificate) {
+        user.getIssuedCertificates().add(certificate);
+        userRepository.save(user);
+    }
 }

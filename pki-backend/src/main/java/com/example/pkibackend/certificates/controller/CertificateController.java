@@ -82,7 +82,7 @@ public class CertificateController {
     @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user') or hasAuthority('ROLE_normal-user')")
     public ResponseEntity<Boolean> createEndEntityCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
         Certificate certificate = certificateService.createCertificate(createCertificateDTO);
-
+        userService.addToCertList(userService.getLoggedUser(), certificate);
         if (certificate == null) {
             return new ResponseEntity<>(false, HttpStatus.BAD_REQUEST);
         }
@@ -94,6 +94,7 @@ public class CertificateController {
     public ResponseEntity<?> createIntermediateCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
         try {
             Certificate certificate = certificateService.createCertificate(createCertificateDTO);
+            userService.addToCertList(userService.getLoggedUser(), certificate);
             if (certificate == null) {
                 return new ResponseEntity<>("Failed to create certificate.", HttpStatus.BAD_REQUEST);
             }
