@@ -40,7 +40,7 @@ export class EndEntityCertificateFormComponent implements OnInit {
     codeSigning: new FormControl(false),
     emailProtection: new FormControl(false),
     timeStamping: new FormControl(false)
-  }, { validators: [EndEntityCertificateFormComponent.dateRangeValidator('startDate', 'endDate')] });
+  }, { validators: [this.endEntityDateRangeValidator] });
 
   mode: Mode = 'auto';
 
@@ -83,6 +83,21 @@ export class EndEntityCertificateFormComponent implements OnInit {
     this.formAuto.get('issuerSerialNumber')?.valueChanges.subscribe(() => {
       this.loadTemplates(this.formAuto.get('issuerSerialNumber')?.value);
     });
+  }
+
+  endEntityDateRangeValidator(group: AbstractControl): ValidationErrors | null {
+    const start = group.get('startDate')?.value;
+    const end = group.get('endDate')?.value;
+    if (start && end && new Date(start) >= new Date(end)) {
+      return { endBeforeStart: true };
+    }
+    if (start) {
+      group.get('startDate')?.setErrors(null);
+    }
+    if (end) {
+      group.get('endDate')?.setErrors(null);
+    }
+    return null;
   }
 
   static dateRangeValidator(startKey: string, endKey: string) {
@@ -213,6 +228,13 @@ export class EndEntityCertificateFormComponent implements OnInit {
     keyUsageValues: [this.formAuto.value.digitalSignature, this.formAuto.value.nonRepudiation, this.formAuto.value.keyEncipherment, this.formAuto.value.dataEncipherment, this.formAuto.value.keyAgreement, this.formAuto.value.cRLSign],
     extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
     };
+    const ttlDays = (new Date(req.endDate).getTime() - new Date(req.startDate).getTime()) / (1000 * 3600 * 24);
+    if (ttlDays > this.selectedTemplate.ttl) {
+        this.formAuto.get('startDate')?.setErrors({ invalidTTL: true });
+        this.formAuto.get('endDate')?.setErrors({ invalidTTL: true });
+        console.log("INVALID TTL")
+        return 
+    }
       this.certificateService.createEndEntityCertificate(req).subscribe({
         next: ok => { if (ok) this.dialogRef.close(true); },
         error: err => console.error('createEndEntityCertificate (auto) failed:', err)
