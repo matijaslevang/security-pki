@@ -57,13 +57,12 @@ public class CertificateController {
         }
         return new ResponseEntity<>(true, HttpStatus.CREATED);
     }
-    @PostMapping(value="/end-entity-blob", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user') or hasAuthority('ROLE_normal-user')")
-    public ResponseEntity<byte[]> createEndEntityCertificateBlob(
-            @RequestBody CreateCertificateDTO createCertificateDTO,
-            @RequestParam("password") String password) {
+
+    @PostMapping(value = "/end-entity-blob", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<byte[]> createEndEntityCertificateBlob(@RequestBody CreateCertificateWithPasswordDTO dto) {
         try {
-            byte[] keystoreBytes = certificateService.createEndEntityWithKeystore(createCertificateDTO, password);
+            byte[] keystoreBytes = certificateService.createEndEntityWithKeystore(dto.getCertificate(), dto.getPassword());
             if (keystoreBytes == null) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
@@ -72,9 +71,10 @@ public class CertificateController {
             headers.setContentDisposition(ContentDisposition.attachment().filename("certificate.p12").build());
             headers.setContentLength(keystoreBytes.length);
             return new ResponseEntity<>(keystoreBytes, headers, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage().getBytes());
         } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create keystore".getBytes());
         }
     }
 
