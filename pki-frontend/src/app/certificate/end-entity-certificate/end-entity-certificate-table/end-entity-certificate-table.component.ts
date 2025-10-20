@@ -3,7 +3,7 @@ import { CertificateService } from '../../certificate.service';
 import { KeycloakService } from 'keycloak-angular';
 import { MatDialog } from '@angular/material/dialog';
 import { RevocationDialogComponent } from '../../revocation-dialog/revocation-dialog.component';
-
+import { CertificateInfo } from '../../certicifate.model';
 @Component({
   selector: 'app-end-entity-certificate-table',
   templateUrl: './end-entity-certificate-table.component.html',
@@ -74,4 +74,14 @@ export class EndEntityCertificateTableComponent implements OnInit {
       }
     });
   }
+    revokeCertificate(cert: CertificateInfo): void {
+      const ref = this.dialog.open(RevocationDialogComponent, { data: { serial: cert.serialNumber } });
+      ref.afterClosed().subscribe(res => {
+        if (!res) return;
+        this.certificateService.revokeCertificate(cert.serialNumber, res.reason, res.comment).subscribe({
+          next: () => this.loadCertificates(),
+          error: err => console.error('revoke failed', err)
+        });
+      });
+    }
 }

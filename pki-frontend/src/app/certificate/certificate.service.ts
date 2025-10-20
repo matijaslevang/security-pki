@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../env/environment';
 import { Observable } from 'rxjs';
@@ -20,10 +20,14 @@ export class CertificateService {
   createIntermediateCertificate(dto: CreateCertificate): Observable<boolean> {
     return this.httpClient.post<boolean>(`${this.url}/intermediate`, dto);
   }
-
-  createEndEntityCertificate(newCertificate: CreateCertificate): Observable<boolean> {
-    return this.httpClient.post<boolean>(this.url + "/end-entity", newCertificate);
+  
+   createEndEntityCertificateBlob(newCertificate: CreateCertificate, password: string): Observable<Blob> {
+    const params = new HttpParams().set('password', password);
+    return this.httpClient.post<Blob>(this.url + "/end-entity-blob", newCertificate, { responseType: 'blob' as 'json', params });
   }
+  createEndEntityCertificate(newCertificate: CreateCertificate): Observable<boolean> {
+     return this.httpClient.post<boolean>(this.url + "/end-entity", newCertificate);
+   }
 
   getIssuingCertificates(): Observable<IssuingCertificate[]> {
     return this.httpClient.get<IssuingCertificate[]>(`${this.url}/my-issuing-certificates`);

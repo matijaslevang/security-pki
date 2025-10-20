@@ -9,6 +9,7 @@ export interface CreateCertificate {
     subjectDto: Subject,
     keyUsageValues: boolean[],
     extKeyUsageValues: boolean[],
+    //password: string,
 }
 
 export interface CreateCertCsrUpload {

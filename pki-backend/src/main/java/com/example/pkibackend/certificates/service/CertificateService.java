@@ -1,5 +1,7 @@
 package com.example.pkibackend.certificates.service;
 
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
@@ -110,7 +112,9 @@ public class CertificateService {
     }
 
     // Pomagači (u istom servisu, private):
-    private boolean isCa(X509Certificate x) { return x.getBasicConstraints() != -1; }
+    private boolean isCa(X509Certificate x) {
+        return x.getBasicConstraints() != -1;
+    }
 
     private boolean hasKeyCertSign(X509Certificate x) {
         boolean[] ku = x.getKeyUsage();
@@ -189,7 +193,7 @@ public class CertificateService {
         DistributionPointName dpName = new DistributionPointName(
                 new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
         DistributionPoint dp = new DistributionPoint(dpName, null, null);
-        CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[] { dp });
+        CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[]{dp});
         try {
             certGen.addExtension(Extension.cRLDistributionPoints, false, cdp);
         } catch (CertIOException e) {
@@ -282,7 +286,7 @@ public class CertificateService {
 
             // 4. Kreiraj lanac sertifikata. Za sada, sadrži samo jedan sertifikat.
             // U složenijim scenarijima, ovde bi se dodavao i sertifikat issuera, itd.
-            java.security.cert.Certificate[] certificateChain = { certificate };
+            java.security.cert.Certificate[] certificateChain = {certificate};
 
             // 5. Ubaci privatni ključ i lanac sertifikata u KeyStore
             // Alias je "prijateljsko ime" za unos unutar keystore-a
@@ -319,7 +323,7 @@ public class CertificateService {
                 x509Cert.getSubjectX500Principal().getName(), // Dobijamo Subject
                 x509Cert.getIssuerX500Principal().getName(),  // Dobijamo Issuer
                 x509Cert.getNotBefore(), // Važi od
-                x509Cert.getNotAfter() ,// Važi do
+                x509Cert.getNotAfter(),// Važi do
                 x509Cert.getBasicConstraints() != -1,
                 certificate.getStatus()
         );
@@ -353,7 +357,8 @@ public class CertificateService {
 
                     List<CertificateInfoDTO> issuedCertificates = allCertificatesInSystem.stream()
                             .filter(cert -> {
-                                if (cert.getX509Certificate() == null || cert.getX509Certificate().getIssuerX500Principal() == null) return false;
+                                if (cert.getX509Certificate() == null || cert.getX509Certificate().getIssuerX500Principal() == null)
+                                    return false;
                                 // Pronalazimo sve sertifikate koje je ovaj CA sertifikat izdao
                                 return cert.getX509Certificate().getIssuerX500Principal().getName().equals(caDto.getSubject());
                             })
@@ -467,6 +472,7 @@ public class CertificateService {
                 .sorted(Comparator.comparing(IssuingCertificateDTO::getSubject, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
+
     private boolean isCaCert(X509Certificate c) throws Exception {
         byte[] bc = c.getExtensionValue(Extension.basicConstraints.getId());
         if (bc == null) return false;
@@ -497,7 +503,9 @@ public class CertificateService {
         boolean[] ku = issuerX.getKeyUsage();
         if (ku == null || ku.length <= 5 || !ku[5])
             throw new IllegalArgumentException("Issuing certificate lacks KeyCertSign.");
-        try { issuerX.checkValidity(); } catch (CertificateException e) {
+        try {
+            issuerX.checkValidity();
+        } catch (CertificateException e) {
             throw new IllegalArgumentException("Issuing certificate not valid now.");
         }
         if (dto.getEndDate().after(issuerX.getNotAfter()))
@@ -610,6 +618,7 @@ public class CertificateService {
         wrap.setStatus(CertificateStatus.VALID);
         return certificateRepository.save(wrap);
     }
+
     public Certificate issueFromCsr(String issuerSerialNumber,
                                     Instant start, Instant end,
                                     byte[] csrBytes) {
@@ -626,7 +635,9 @@ public class CertificateService {
         boolean[] ku = issuerX.getKeyUsage();
         if (ku == null || ku.length <= 5 || !ku[5])
             throw new IllegalArgumentException("Issuing certificate lacks KeyCertSign.");
-        try { issuerX.checkValidity(); } catch (CertificateException e) {
+        try {
+            issuerX.checkValidity();
+        } catch (CertificateException e) {
             throw new IllegalArgumentException("Issuing certificate not valid now.");
         }
         if (Date.from(end).after(issuerX.getNotAfter()))
@@ -747,6 +758,110 @@ public class CertificateService {
         wrap.setStatus(CertificateStatus.VALID);
 
         return certificateRepository.save(wrap);
+    }
+
+    public byte[] createEndEntityWithKeystore(CreateCertificateDTO dto, String password) {
+        // 1. Validate as in createCertificate
+        if (dto.getIssuerSerialNumber() == null || dto.getIssuerSerialNumber().isEmpty())
+            throw new IllegalArgumentException("Issuer serial number is required.");
+        if (password == null || password.isEmpty())
+            throw new IllegalArgumentException("Password is required.");
+
+        Certificate issuerRecord = certificateRepository.findById(dto.getIssuerSerialNumber())
+                .orElseThrow(() -> new RuntimeException("Issuing certificate not found."));
+        Issuer issuer = issuerService.getIssuer(issuerRecord.getIssuerId());
+        if (issuer == null) throw new RuntimeException("Issuer owner not found.");
+
+        // 2. Generate key pair
+        KeyPair kp;
+        try {
+            KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA", "BC");
+            kpg.initialize(2048, new SecureRandom());
+            kp = kpg.generateKeyPair();
+        } catch (Exception e) {
+            throw new RuntimeException("Key pair generation failed", e);
+        }
+        PublicKey pub = kp.getPublic();
+        PrivateKey priv = kp.getPrivate();
+
+        // 3. Build subject name from DTO
+        X500Name subjectName = buildSubjectName(dto.getSubjectDto());
+
+        // 4. Create and save subject (public key only)
+        Subject subject = new Subject();
+        subject.setX500Name(subjectName);
+        subject.setPublicKey(pub);
+        subject = subjectService.save(subject);
+
+        // 5. Generate serial
+        BigInteger serial;
+        do {
+            UUID uuid = UUID.randomUUID();
+            serial = new BigInteger(uuid.toString().replace("-", ""), 16);
+            if (serial.signum() < 0) serial = serial.negate();
+        } while (certificateRepository.existsById(serial.toString()));
+
+        // 6. Build certificate
+        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
+                issuer.getX500Name(),
+                serial,
+                dto.getStartDate(),
+                dto.getEndDate(),
+                subjectName,
+                pub
+        );
+
+        // Add extensions (basicConstraints false, keyUsage, extKeyUsage, SKI/AKI if selected, SAN, CDP)
+        // Assume addExtensions method exists from your createCertificate logic
+        // addExtensions(certGen, dto, issuer, pub);
+
+        // Sign
+        ContentSigner contentSigner;
+        try {
+            contentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").setProvider("BC").build(issuer.getPrivateKey());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        X509CertificateHolder certHolder = certGen.build(contentSigner);
+        X509Certificate cert;
+        try {
+            cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate(certHolder);
+        } catch (CertificateException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Save certificate
+        Certificate certificateWrapper = new Certificate();
+        certificateWrapper.setSerial(serial.toString());
+        certificateWrapper.setSubjectId(subject.getId());
+        certificateWrapper.setIssuerId(issuer.getUserUUID());
+        certificateWrapper.setX509Certificate(cert);
+        certificateWrapper.setStatus(CertificateStatus.VALID);
+        certificateRepository.save(certificateWrapper);
+
+        // 7. Create PKCS12 keystore (private key not saved)
+        try {
+            KeyStore ks = KeyStore.getInstance("PKCS12");
+            ks.load(null, null);
+            java.security.cert.Certificate[] chain = { cert };
+            ks.setKeyEntry(serial.toString(), priv, password.toCharArray(), chain);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ks.store(baos, password.toCharArray());
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Keystore generation failed", e);
+        }
+    }
+    private X500Name buildSubjectName(SubjectDTO dto) {
+        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+        if (dto.getCommonName() != null) builder.addRDN(BCStyle.CN, dto.getCommonName());
+        if (dto.getGivenName() != null) builder.addRDN(BCStyle.GIVENNAME, dto.getGivenName());
+        if (dto.getSurname() != null) builder.addRDN(BCStyle.SURNAME, dto.getSurname());
+        if (dto.getOrganization() != null) builder.addRDN(BCStyle.O, dto.getOrganization());
+        if (dto.getDepartment() != null) builder.addRDN(BCStyle.OU, dto.getDepartment());
+        if (dto.getCountry() != null) builder.addRDN(BCStyle.C, dto.getCountry());
+        if (dto.getEmail() != null) builder.addRDN(BCStyle.E, dto.getEmail());
+        return builder.build();
     }
 
 }

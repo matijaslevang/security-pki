@@ -11,10 +11,7 @@ import com.example.pkibackend.certificates.service.IssuerService;
 import com.example.pkibackend.certificates.service.TemplateService;
 import com.example.pkibackend.users.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -60,9 +57,29 @@ public class CertificateController {
         }
         return new ResponseEntity<>(true, HttpStatus.CREATED);
     }
+    @PostMapping(value="/end-entity-blob", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user') or hasAuthority('ROLE_normal-user')")
+    public ResponseEntity<byte[]> createEndEntityCertificateBlob(
+            @RequestBody CreateCertificateDTO createCertificateDTO,
+            @RequestParam("password") String password) {
+        try {
+            byte[] keystoreBytes = certificateService.createEndEntityWithKeystore(createCertificateDTO, password);
+            if (keystoreBytes == null) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(new MediaType("application", "x-pkcs12"));
+            headers.setContentDisposition(ContentDisposition.attachment().filename("certificate.p12").build());
+            headers.setContentLength(keystoreBytes.length);
+            return new ResponseEntity<>(keystoreBytes, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
 
     @PostMapping(value="/end-entity", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user')")
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_ca-user') or hasAuthority('ROLE_normal-user')")
     public ResponseEntity<Boolean> createEndEntityCertificate(@RequestBody CreateCertificateDTO createCertificateDTO) {
         Certificate certificate = certificateService.createCertificate(createCertificateDTO);
 
@@ -158,9 +175,7 @@ public class CertificateController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // U klasi CertificateController.java
 
-    // ZAMENI postojeću uploadCsr metodu sa ovom:
     @PostMapping(value = "/csr/upload-extension", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> uploadCsrWithExtensions(
@@ -226,7 +241,7 @@ public class CertificateController {
     }
 
     @GetMapping("/all-issuing-certificates")
-    @PreAuthorize("hasAuthority('ROLE_admin-user')")
+    @PreAuthorize("hasAuthority('ROLE_admin-user') or hasAuthority('ROLE_normal-user')")
     public ResponseEntity<List<IssuingCertificateDTO>> getAllIssuingCertificates() {
         try {
             List<IssuingCertificateDTO> certificates = certificateService.getAllIssuingCertificates();

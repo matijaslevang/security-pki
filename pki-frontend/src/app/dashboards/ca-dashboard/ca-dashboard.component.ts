@@ -3,7 +3,7 @@ import { IntermediateCertificateTableComponent } from '../../certificate/interme
 import { MatDialog } from '@angular/material/dialog';
 import { IntermediateCertificateFormComponent } from '../../certificate/intermediate-certificate/intermediate-certificate-form/intermediate-certificate-form.component';
 import { EndEntityCertificateFormComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
-
+import { EndEntityCertificateAutogenerateComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-autogenerate/end-entity-certificate-autogenerate.component';
 @Component({
   selector: 'app-ca-dashboard',
   templateUrl: './ca-dashboard.component.html',
@@ -34,7 +34,7 @@ export class CaDashboardComponent {
   }
 
   openCreateEndEntityForm(): void {
-  const dialogRef = this.dialog.open(EndEntityCertificateFormComponent, {
+  const dialogRef = this.dialog.open(EndEntityCertificateAutogenerateComponent, {
     width: '800px',
     disableClose: true,
     data: { isAdmin: false }  // ca-user vidi samo svoje CA sertifikate kao issuere

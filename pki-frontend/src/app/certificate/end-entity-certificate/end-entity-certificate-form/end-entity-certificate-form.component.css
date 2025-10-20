@@ -1,4 +1,4 @@
-:host { font-size: 14px; }
+ :host { font-size: 14px; }
 
 mat-dialog-content {
   max-height: 70vh;      
@@ -24,4 +24,4 @@ mat-dialog-content {
 .checkbox-full-width {
   display: block;
   margin: 8px 0 16px;
-}
+} 
