@@ -1,0 +1,128 @@
+<h1 mat-dialog-title>Issue End-Entity Certificate (Autogenerate)</h1>
+
+<!-- Sadržaj forme sa skrolovanjem -->
+<div mat-dialog-content>
+  <form [formGroup]="formAuto" class="certificate-form">
+    <h2>Issuing Certificate</h2>
+    <p>Select the CA certificate that signs this end-entity.</p>
+
+    <!-- Izbor CA sertifikata -->
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>Issuer CA certificate</mat-label>
+      <mat-select formControlName="issuerSerialNumber">
+        <mat-option *ngFor="let cert of issuingCertificates$ | async" [value]="cert.serialNumber">
+          {{ cert.subject }} (SN: {{ cert.serialNumber }})
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="formAuto.get('issuerSerialNumber')?.hasError('required')">
+        You must select an issuing certificate.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Izbor templejta (prikazuje se samo ako postoje) -->
+    <mat-form-field appearance="fill" class="full-width" *ngIf="templates.length > 0">
+      <mat-label>Template</mat-label>
+      <mat-select [(ngModel)]="selectedTemplate" [ngModelOptions]="{standalone: true}" (selectionChange)="applyTemplate()">
+        <mat-option *ngFor="let template of templates" [value]="template">
+          {{template.name}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Detalji o subjektu -->
+    <h2 class="form-section-title">Subject Details</h2>
+    <div class="subject-group">
+      <mat-form-field appearance="fill">
+        <mat-label>Common Name</mat-label>
+        <input matInput formControlName="commonName">
+        <mat-error *ngIf="formAuto.get('commonName')?.hasError('required')">Common Name is required.</mat-error>
+        <mat-error *ngIf="formAuto.get('commonName')?.hasError('pattern')">Doesn't match template's pattern.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Given Name</mat-label>
+        <input matInput formControlName="givenName">
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Surname</mat-label>
+        <input matInput formControlName="surname">
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Organization (O)</mat-label>
+        <input matInput formControlName="organization">
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Department (OU)</mat-label>
+        <input matInput formControlName="department">
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Country (C)</mat-label>
+        <input matInput formControlName="country" placeholder="e.g., RS">
+        <mat-error *ngIf="formAuto.get('country')?.hasError('pattern')">Must be 2-letter code (e.g., RS).</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>Email Address</mat-label>
+        <input matInput formControlName="email" placeholder="e.g., user@company.com">
+         <mat-error *ngIf="formAuto.get('email')?.hasError('email')">Invalid email format.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <!-- Period važenja -->
+    <h2 class="form-section-title">Validity Period</h2>
+    <div class="date-group">
+      <mat-form-field appearance="fill">
+        <mat-label>Start Date</mat-label>
+        <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+        <mat-datepicker #startPicker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="fill">
+        <mat-label>End Date</mat-label>
+        <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+        <mat-datepicker #endPicker></mat-datepicker>
+        <mat-error *ngIf="formAuto.hasError('endBeforeStart') && formAuto.get('endDate')?.touched">
+          End date must be after start date.
+        </mat-error>
+         <mat-error *ngIf="formAuto.get('endDate')?.hasError('invalidTTL')">
+          Validity period exceeds the template's maximum Time-To-Live.
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <!-- Ekstenzije -->
+    <h2 class="form-section-title">Extensions</h2>
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>SAN (comma-separated)</mat-label>
+      <input matInput formControlName="sanString" />
+      <mat-error *ngIf="formAuto.get('sanString')?.hasError('pattern')">Doesn't match template's pattern.</mat-error>
+    </mat-form-field>
+    <mat-checkbox formControlName="skiaki" class="checkbox-full-width">Subject Key Identifier / Authority Key Identifier</mat-checkbox>
+    
+    <!-- Key Usage Ekstenzije -->
+    <h2 class="form-section-title">Key Usage</h2>
+    <div class="subject-group">
+      <mat-checkbox formControlName="digitalSignature">Digital Signature</mat-checkbox>
+      <mat-checkbox formControlName="nonRepudiation">Non Repudiation</mat-checkbox>
+      <mat-checkbox formControlName="keyEncipherment">Key Encipherment</mat-checkbox>
+      <mat-checkbox formControlName="dataEncipherment">Data Encipherment</mat-checkbox>
+      <mat-checkbox formControlName="keyAgreement">Key Agreement</mat-checkbox>
+      <mat-checkbox formControlName="cRLSign">CRL Sign</mat-checkbox>
+    </div>
+
+    <!-- Extended Key Usage Ekstenzije -->
+    <h2 class="form-section-title">Extended Key Usage</h2>
+    <div class="subject-group">
+      <mat-checkbox formControlName="serverAuth">Server Authentication</mat-checkbox>
+      <mat-checkbox formControlName="clientAuth">Client Authentication</mat-checkbox>
+      <mat-checkbox formControlName="codeSigning">Code Signing</mat-checkbox>
+      <mat-checkbox formControlName="emailProtection">Email Protection</mat-checkbox>
+      <mat-checkbox formControlName="timeStamping">Time Stamping</mat-checkbox>
+    </div>
+  </form>
+</div>
+
+<!-- Dugmići za akcije -->
+<div mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="submit()" [disabled]="!formAuto.valid">Issue Certificate</button>
+</div>

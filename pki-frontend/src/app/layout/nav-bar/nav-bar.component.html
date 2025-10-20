@@ -1,0 +1,4 @@
+<button *ngIf="!logged" (click)="auth.register()">Register</button>
+<button *ngIf="!logged" (click)="auth.login()">Login</button>
+<button *ngIf="logged" (click)="auth.logout()">Log out</button>
+<app-admin-register *ngIf="isAdmin"></app-admin-register>

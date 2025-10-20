@@ -1,0 +1,206 @@
+<h1 mat-dialog-title>Issue End-Entity Certificate</h1>
+
+<mat-tab-group (selectedTabChange)="onTabChange($event)">
+  <!-- TAB 1: Autogenerate -->
+  <mat-tab label="Autogenerate">
+    <div mat-dialog-content>
+      <form [formGroup]="formAuto" class="certificate-form">
+        <h2>Issuing Certificate</h2>
+        <p>Select the CA certificate that signs this end-entity.</p>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Issuer CA certificate</mat-label>
+          <mat-select formControlName="issuerSerialNumber">
+            <mat-option *ngFor="let cert of issuingCertificates$ | async" [value]="cert.serialNumber">
+              {{ cert.subject }} (SN: {{ cert.serialNumber }})
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="formAuto.get('issuerSerialNumber')?.hasError('required')">
+            You must select an issuing certificate.
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width" *ngIf="templates.length > 1">
+          <mat-label>Template</mat-label>
+          <mat-select [(value)]="selectedTemplate" (selectionChange)="applyTemplate()">
+            <mat-option *ngFor="let template of templates" [value]="template">
+              {{template.name}}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <h2 class="form-section-title">Subject Details</h2>
+        <div class="subject-group">
+          <mat-form-field appearance="fill">
+            <mat-label>Common Name</mat-label>
+            <input matInput formControlName="commonName">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Given Name</mat-label>
+            <input matInput formControlName="givenName">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Surname</mat-label>
+            <input matInput formControlName="surname">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Organization (O)</mat-label>
+            <input matInput formControlName="organization">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Department (OU)</mat-label>
+            <input matInput formControlName="department">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Country (C)</mat-label>
+            <input matInput formControlName="country" placeholder="e.g., RS">
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>Email Address</mat-label>
+            <input matInput formControlName="email" placeholder="e.g., user@company.com">
+          </mat-form-field>
+        </div>
+
+        <h2 class="form-section-title">Validity Period</h2>
+        <div class="date-group">
+          <mat-form-field appearance="fill">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="startPicker" formControlName="startDate">
+            <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="endPicker" formControlName="endDate">
+            <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+            <mat-datepicker #endPicker></mat-datepicker>
+            <mat-error *ngIf="formAuto.hasError('endBeforeStart') && formAuto.get('endDate')?.touched">
+              End date must be after start date.
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <h2 class="form-section-title">Extensions</h2>
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>SAN (comma-separated: DNS:api.example.com, IP:10.0.0.5)</mat-label>
+          <input matInput formControlName="sanString" />
+        </mat-form-field>
+
+        <mat-checkbox formControlName="skiaki" class="checkbox-full-width">SKI/AKI</mat-checkbox>
+      <h2 class="form-section-title">keyUsage</h2>
+      <div class="subject-group">
+          <mat-checkbox formControlName="digitalSignature" class="checkbox-full-width">digitalSignature</mat-checkbox>
+          <mat-checkbox formControlName="nonRepudiation" class="checkbox-full-width">nonRepudiation (contentCommitment)</mat-checkbox>
+          <mat-checkbox formControlName="keyEncipherment" class="checkbox-full-width">keyEncipherment</mat-checkbox>
+          <mat-checkbox formControlName="dataEncipherment" class="checkbox-full-width">dataEncipherment</mat-checkbox>
+          <mat-checkbox formControlName="keyAgreement" class="checkbox-full-width">keyAgreement</mat-checkbox>
+          <mat-checkbox formControlName="cRLSign" class="checkbox-full-width">cRLSign</mat-checkbox>
+      </div>
+
+      <h2 class="form-section-title">extendedKeyUsage</h2>
+      <div class="subject-group">
+          <mat-checkbox formControlName="serverAuth" class="checkbox-full-width">serverAuth</mat-checkbox>
+          <mat-checkbox formControlName="clientAuth" class="checkbox-full-width">clientAuth</mat-checkbox>
+          <mat-checkbox formControlName="codeSigning" class="checkbox-full-width">codeSigning</mat-checkbox>
+          <mat-checkbox formControlName="emailProtection" class="checkbox-full-width">emailProtection</mat-checkbox>
+          <mat-checkbox formControlName="timeStamping" class="checkbox-full-width">timeStamping</mat-checkbox>
+      </div>
+      <h2 class="form-section-title">Download Options</h2>
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Keystore Password</mat-label>
+          <input matInput formControlName="password" type="password" placeholder="Enter password for PKCS12/JKS">
+          <mat-error *ngIf="formAuto.get('password')?.hasError('required')">
+            Password is required for keystore.
+          </mat-error>
+        </mat-form-field>
+        </form>
+    </div>
+
+    <div mat-dialog-actions align="end">
+      <button mat-stroked-button (click)="onCancel()">Cancel</button>
+      <button mat-raised-button color="primary" (click)="submit()">Issue Certificate</button>
+    </div>
+  </mat-tab>
+
+  <!-- TAB 2: Upload CSR -->
+  <mat-tab label="Upload CSR">
+    <div mat-dialog-content>
+      <form [formGroup]="formCsr">
+        <h2>CSR Upload</h2>
+        <p>Upload PEM encoded CSR (.pem/.csr)</p>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Issuer CA certificate</mat-label>
+          <mat-select formControlName="issuerSerialNumber" required>
+            <mat-option *ngFor="let cert of issuingCertificates$ | async" [value]="cert.serialNumber">
+              {{ cert.subject }} (SN: {{ cert.serialNumber }})
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <input type="file" accept=".pem,.csr,.txt" (change)="onCsrFileSelected($event)" />
+
+        <h2 class="form-section-title">Validity Period</h2>
+        <div class="date-group">
+          <mat-form-field appearance="fill">
+            <mat-label>Start Date</mat-label>
+            <input matInput [matDatepicker]="csrStart" formControlName="startDate">
+            <mat-datepicker-toggle matSuffix [for]="csrStart"></mat-datepicker-toggle>
+            <mat-datepicker #csrStart></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill">
+            <mat-label>End Date</mat-label>
+            <input matInput [matDatepicker]="csrEnd" formControlName="endDate">
+            <mat-datepicker-toggle matSuffix [for]="csrEnd"></mat-datepicker-toggle>
+            <mat-datepicker #csrEnd></mat-datepicker>
+          </mat-form-field>
+        </div>
+      
+    
+    <!-- <h2 class="form-section-title">Extensions</h2>
+    <mat-form-field appearance="fill" class="full-width">
+      <mat-label>SAN (comma-separated: DNS:api.example.com, IP:10.0.0.5)</mat-label>
+      <input matInput formControlName="sanString" />
+    </mat-form-field>
+
+    <mat-checkbox formControlName="skiaki" class="checkbox-full-width">SKI/AKI</mat-checkbox>
+    <h2 class="form-section-title">keyUsage</h2>
+    <div class="subject-group">
+        <mat-checkbox formControlName="digitalSignature" class="checkbox-full-width">digitalSignature</mat-checkbox>
+        <mat-checkbox formControlName="nonRepudiation" class="checkbox-full-width">nonRepudiation (contentCommitment)</mat-checkbox>
+        <mat-checkbox formControlName="keyEncipherment" class="checkbox-full-width">keyEncipherment</mat-checkbox>
+        <mat-checkbox formControlName="dataEncipherment" class="checkbox-full-width">dataEncipherment</mat-checkbox>
+        <mat-checkbox formControlName="keyAgreement" class="checkbox-full-width">keyAgreement</mat-checkbox>
+        <mat-checkbox formControlName="cRLSign" class="checkbox-full-width">cRLSign</mat-checkbox>
+    </div>
+
+    <h2 class="form-section-title">extendedKeyUsage</h2>
+    <div class="subject-group">
+        <mat-checkbox formControlName="serverAuth" class="checkbox-full-width">serverAuth</mat-checkbox>
+        <mat-checkbox formControlName="clientAuth" class="checkbox-full-width">clientAuth</mat-checkbox>
+        <mat-checkbox formControlName="codeSigning" class="checkbox-full-width">codeSigning</mat-checkbox>
+        <mat-checkbox formControlName="emailProtection" class="checkbox-full-width">emailProtection</mat-checkbox>
+        <mat-checkbox formControlName="timeStamping" class="checkbox-full-width">timeStamping</mat-checkbox>
+    </div>   -->
+    </form></div>
+    <div mat-dialog-actions align="end">
+      <button mat-stroked-button (click)="onCancel()">Cancel</button>
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="submit()"
+        [disabled]="!formCsr.valid || !formCsr.get('csrFile')?.value"
+      >
+        Submit CSR
+      </button>
+    </div>
+  </mat-tab>
+</mat-tab-group>

@@ -1,0 +1,58 @@
+<div class="chains-container">
+  <h2>All Certificate Chains in the System</h2>
+
+  <div *ngIf="chains.length === 0" class="no-chains">
+    There are no created Root certificates in the system.
+  </div>
+
+  <div *ngFor="let chain of chains" class="chain-table">
+    <h3>Chain initiated by: {{ chain.chainRows[0].certificate.subject }}</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Subject (with hierarchy)</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Serial Number</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of chain.chainRows">
+          <td [style.padding-left.px]="10 + row.depth * 25" class="subject-cell">
+             <span *ngIf="row.depth > 0">└─ </span>
+            {{ row.certificate.subject }}
+          </td>
+          <td>
+             <strong *ngIf="row.depth === 0">ROOT CA</strong>
+             <ng-container *ngIf="row.depth > 0">
+                <span *ngIf="isCa(row)">INTERMEDIATE CA</span>
+                <span *ngIf="!isCa(row)">End-Entity</span>
+             </ng-container>
+          </td>
+          <td>
+            <span [ngClass]="{
+              'status-valid': row.certificate.status === 'VALID',
+              'status-revoked': row.certificate.status === 'REVOKED'
+            }">
+              {{ row.certificate.status }}
+            </span>
+          </td>
+          <td>{{ row.certificate.serialNumber }}</td>
+          <td class="actions-cell">
+            <button *ngIf="row.certificate.status === 'VALID'" class="btn-download" (click)="downloadCertificate(row.certificate.serialNumber)">Download</button>
+            <button *ngIf="row.certificate.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(row.certificate)">Revoke</button>
+            
+            <!-- NOVO DUGME -->
+            <button 
+              *ngIf="row.certificate.status === 'VALID' && isCa(row) && row.depth > 0"
+              class="btn-assign"
+              (click)="openAssignDialog(row.certificate)">
+              Assign
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

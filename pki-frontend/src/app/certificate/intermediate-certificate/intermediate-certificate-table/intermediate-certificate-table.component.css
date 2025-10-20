@@ -1,0 +1,70 @@
+.chains-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.chain-table {
+  width: 90%;
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+/* NOVO: Pravilo za prelamanje teksta u naslovu */
+.chain-table h3 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  /* NOVO: Govori tabeli da poštuje svoju širinu */
+  table-layout: fixed;
+}
+
+th, td {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+  /* NOVO: Omogućava prelamanje dugačkih reči unutar ćelije */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+thead tr {
+  background-color: #e0e0e0;
+}
+
+.root-cert {
+  background-color: #d1e7dd; 
+  font-weight: bold;
+}
+
+.issued-cert td:first-child {
+  padding-left: 20px;
+}
+
+button {
+  padding: 5px 10px;
+  cursor: pointer;
+  border: none;
+  background-color: #0d6efd;
+  color: white;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #0b5ed7;
+}
+
+.no-chains {
+  margin-top: 2rem;
+  font-style: italic;
+  color: #6c757d;
+}

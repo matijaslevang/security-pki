@@ -1,0 +1,49 @@
+<div class="chains-container">
+  <h2>My Certificate Chains</h2>
+
+  <div *ngIf="chains.length === 0" class="no-chains">
+    You have no created intermediate certificates.
+  </div>
+
+  <div *ngFor="let chain of chains" class="chain-table">
+    <h3>Chain initiated by: {{ chain.rootCertificate.subject }}</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Serial Number</th>
+          <th>Subject</th>
+          <th>Valid From</th>
+          <th>Valid To</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="root-cert">
+          <td><strong>ASSIGNED CA CERTIFICATE</strong></td>
+          <td>{{ chain.rootCertificate.serialNumber }}</td>
+          <td>{{ chain.rootCertificate.subject }}</td>
+          <td>{{ chain.rootCertificate.validFrom | date:'dd.MM.yyyy' }}</td>
+          <td>{{ chain.rootCertificate.validTo | date:'dd.MM.yyyy' }}</td>
+          <td>{{ chain.rootCertificate.status }}</td>
+          <td>
+            <button *ngIf="chain.rootCertificate.status === 'VALID'" (click)="downloadCertificate(chain.rootCertificate.serialNumber)">Download</button>
+          </td>
+        </tr>
+        <tr *ngFor="let issuedCert of chain.issuedCertificates" class="issued-cert">
+          <td>Certificate</td>
+          <td>{{ issuedCert.serialNumber }}</td>
+          <td>{{ issuedCert.subject }}</td>
+          <td>{{ issuedCert.validFrom | date:'dd.MM.yyyy' }}</td>
+          <td>{{ issuedCert.validTo | date:'dd.MM.yyyy' }}</td>
+          <td>{{ issuedCert.status }}</td>
+          <td>
+            <button *ngIf="issuedCert.status === 'VALID'" (click)="downloadCertificate(issuedCert.serialNumber)">Download</button>
+            <button *ngIf="issuedCert.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(issuedCert)">Revoke</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

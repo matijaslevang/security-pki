@@ -1,0 +1,24 @@
+<div class="dashboard-container">
+  <div class="header">
+    <div class="button-group">
+      <button mat-raised-button color="primary" (click)="openCreateRootForm()">
+        + Add Root Certificate
+      </button> 
+      
+      <button mat-raised-button color="primary" (click)="openCreateIntermediateForm()">
+        + Add Intermediate Certificate
+      </button>
+
+      <button mat-raised-button color="primary" (click)="openCreateEndEntityForm()">
+        + Add End-Entity
+      </button>
+
+      <button mat-raised-button color="primary" (click)="openTemplateForm()">
+        + Add Template
+      </button>
+
+    </div>
+  </div>
+
+  <app-self-signed-certificate-table #certList></app-self-signed-certificate-table>
+</div>

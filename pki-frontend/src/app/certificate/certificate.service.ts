@@ -1,0 +1,105 @@
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { environment } from '../../env/environment';
+import { Observable } from 'rxjs';
+import { CertificateChain, CreateCertificateWithPassword, CertificateChainDisplay, CreateCertCsrUpload,CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class CertificateService {
+
+  url: string = environment.apiUrl + "/api/certificates"
+
+  constructor(private httpClient: HttpClient) { }
+  
+  createSelfSignedCertificate(newCertificate: CreateCertificate): Observable<boolean> {
+    return this.httpClient.post<boolean>(this.url + "/selfsigned", newCertificate);
+  }
+
+  createIntermediateCertificate(dto: CreateCertificate): Observable<boolean> {
+    return this.httpClient.post<boolean>(`${this.url}/intermediate`, dto);
+  }
+  createEndEntityCertificateBlob(requestData: CreateCertificateWithPassword): Observable<Blob> {
+    return this.httpClient.post(this.url + "/end-entity-blob", requestData, { responseType: 'blob' });
+  }
+  //  createEndEntityCertificateBlob(newCertificate: CreateCertificate, password: string): Observable<Blob> {
+  //   const params = new HttpParams().set('password', password);
+  //   return this.httpClient.post<Blob>(this.url + "/end-entity-blob", newCertificate, { responseType: 'blob' as 'json', params });
+  // }
+  createEndEntityCertificate(newCertificate: CreateCertificate): Observable<boolean> {
+     return this.httpClient.post<boolean>(this.url + "/end-entity", newCertificate);
+   }
+
+  getIssuingCertificates(): Observable<IssuingCertificate[]> {
+    return this.httpClient.get<IssuingCertificate[]>(`${this.url}/my-issuing-certificates`);
+  }
+
+  getAllIssuingCertificates(): Observable<IssuingCertificate[]> {
+    return this.httpClient.get<IssuingCertificate[]>(`${this.url}/all-issuing-certificates`);
+  }
+
+  submitCsr(issuerSerialNumber: string, startDate: Date, endDate: Date, file: File) {
+    const fd = new FormData();
+    fd.append('issuerSerialNumber', issuerSerialNumber);
+    fd.append('startDate', startDate.toISOString());
+    fd.append('endDate', endDate.toISOString());
+    fd.append('csr', file, file.name);
+    return this.httpClient.post<boolean>(`${this.url}/csr/upload`, fd);
+  }
+  submitCsrWithExtensions(dto: CreateCertCsrUpload, file: File) {
+    const fd = new FormData();
+
+    // Kreiraj Blob od DTO objekta. Backend će ga parsirati iz JSON-a.
+    const dtoBlob = new Blob([JSON.stringify(dto)], { type: 'application/json' });
+    fd.append('dto', dtoBlob);
+
+    // Dodaj i sam fajl
+    fd.append('csr', file, file.name);
+
+    return this.httpClient.post<boolean>(`${this.url}/csr/upload-extension`, fd);
+  }
+
+  revokeCertificate(serial: string, reason: number, comment: string = ''): Observable<void> {
+    return this.httpClient.post<void>(`${this.url}/${serial}/revoke`, { reason, comment });
+  }
+
+  getEligibleUsers() {
+    const params = { roles: 'admin-user,ca-user' }; 
+    return this.httpClient.get<KcUser[]>('/iam/users', { params });
+  }
+
+  getMyCertificates(): Observable<CertificateInfo[]> {
+    return this.httpClient.get<any[]>(`${this.url}/my-certificates`);
+  }
+
+  // Metoda za preuzimanje .p12 fajla
+  downloadCertificate(serialNumber: string): Observable<Blob> {
+    // Važno: responseType mora biti 'blob' da bi se preuzeo fajl
+    return this.httpClient.get(`${this.url}/${serialNumber}/download`, {
+      responseType: 'blob'
+    });
+  }
+
+  getMyChains(): Observable<CertificateChain[]> {
+    return this.httpClient.get<CertificateChain[]>(`${this.url}/my-chains`);
+  }
+
+  getAllCertificateChains(): Observable<CertificateChainDisplay[]> {
+    return this.httpClient.get<CertificateChainDisplay[]>(`${this.url}/all-chains`);
+  }
+
+  createCertificateTemplate(newTemplate: CreateCertTemplate): Observable<any> {
+    return this.httpClient.post<any>(this.url + "/template", newTemplate);
+  }
+
+  getAllTemplatesForCertificateSerial(serial: string): Observable<CertTemplate[]> {
+    return this.httpClient.get<CertTemplate[]>(this.url + "/templates/" + serial);
+  }
+
+  getAssignableIntermediateCertificates(): Observable<IssuingCertificate[]> {
+    return this.httpClient.get<IssuingCertificate[]>(`${this.url}/intermediate/assignable`);
+  }
+
+}
+export interface KcUser { id:string; username:string; email:string; firstName:string; lastName:string; }

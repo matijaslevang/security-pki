@@ -1,0 +1,18 @@
+<h1 mat-dialog-title>Assign Intermediate Certificate</h1>
+<div mat-dialog-content>
+  <form [formGroup]="form" class="assign-form">
+    <mat-form-field appearance="fill">
+      <mat-label>Select User</mat-label>
+      <mat-select formControlName="userId">
+        <mat-option *ngFor="let user of users$ | async" [value]="user.id">
+          {{ user.displayName }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+  </form>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="onCancel()">Cancel</button>
+  <button mat-raised-button color="primary" [disabled]="form.invalid" (click)="submit()">Assign</button>
+</div>

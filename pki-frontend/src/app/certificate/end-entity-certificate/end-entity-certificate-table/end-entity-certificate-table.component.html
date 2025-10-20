@@ -1,0 +1,42 @@
+<div class="table-container">
+  <h2>
+    {{ userRole === 'admin-user' ? 'End-entity Certificates' : 'My Certificates' }}
+  </h2>  <table>
+    <thead>
+      <tr>
+        <th>Serial Number</th>
+        <th>Subject</th>
+        <th>Issuer</th>
+        <th>Valid From</th>
+        <th>Valid To</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngIf="certificates.length === 0">
+        <td colspan="6">You have no issued certificates.</td>
+      </tr>
+      <tr *ngFor="let cert of certificates">
+        <td>{{ cert.serialNumber }}</td>
+        <td>{{ cert.subject }}</td>
+        <td>{{ cert.issuer }}</td>
+        <td>{{ cert.validFrom | date:'dd.MM.yyyy' }}</td>
+        <td>{{ cert.validTo | date:'dd.MM.yyyy' }}</td>
+        <td>
+            <span [ngClass]="{
+              'status-valid': cert.status === 'VALID',
+              'status-revoked': cert.status === 'REVOKED'
+            }">
+              {{ cert.status }}
+            </span>
+          </td>
+       
+        <td>
+          <button *ngIf="cert.status === 'VALID'" (click)="downloadCertificate(cert.serialNumber)">Download</button>
+          <button *ngIf="cert.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(cert)">Revoke</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
