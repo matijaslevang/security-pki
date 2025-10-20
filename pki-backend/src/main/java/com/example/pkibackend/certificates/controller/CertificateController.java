@@ -170,7 +170,7 @@ public class CertificateController {
 
             String userId = principal.getName(); // Ovo je ispravan UUID, npr. "6ab46a40-..."
 
-            List<CertificateInfoDTO> certificates = certificateService.getCertificatesForUser(subjectId);
+            List<CertificateInfoDTO> certificates = user.getIssuedCertificates().stream().map(certificateService::mapCertificateToDTO).toList();
             return new ResponseEntity<>(certificates, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
