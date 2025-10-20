@@ -34,7 +34,7 @@
        
         <td>
           <button *ngIf="cert.status === 'VALID'" (click)="downloadCertificate(cert.serialNumber)">Download</button>
-          <button *ngIf="cert.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(cert.serialNumber)">Revoke</button>
+          <button *ngIf="cert.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(cert)">Revoke</button>
         </td>
       </tr>
     </tbody>
