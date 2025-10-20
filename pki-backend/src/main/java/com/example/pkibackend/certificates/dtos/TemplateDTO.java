@@ -14,6 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 public class TemplateDTO {
     private Long id;
+    private String name;
     private String serialNumber;
     private String commonNameRegex;
     private String sanRegex;
@@ -25,6 +26,7 @@ public class TemplateDTO {
 
     public TemplateDTO(Template template) {
         this.id = template.getId();
+        this.name = template.getName();
         this.serialNumber = template.getCertificateSerialNumber();
         this.commonNameRegex = template.getCommonNameRegex();
         this.sanRegex = template.getSanRegex();

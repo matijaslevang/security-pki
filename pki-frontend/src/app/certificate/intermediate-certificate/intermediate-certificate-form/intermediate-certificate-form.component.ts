@@ -40,7 +40,7 @@ export class IntermediateCertificateFormComponent implements OnInit {
       startDate: [new Date(), Validators.required],
       endDate: ['', Validators.required],
       sanString: [''],
-      skiAki: [false],
+      skiaki: [false],
       digitalSignature: [false],
       nonRepudiation: [false],
       keyEncipherment: [false],
@@ -72,8 +72,9 @@ export class IntermediateCertificateFormComponent implements OnInit {
       next: (templates: CertTemplate[]) => {
         this.templates = [{
           id: -1,
+          name: "No template",
           serialNumber: '',
-          commonNameRegex: 'No template',
+          commonNameRegex: '',
           sanRegex: '',
           ttl: 0,
           skiakiDefaultValue: false,
@@ -159,6 +160,12 @@ export class IntermediateCertificateFormComponent implements OnInit {
     if (start && end && new Date(start) >= new Date(end)) {
       return { endBeforeStart: true };
     }
+    if (start) {
+      group.get('startDate')?.setErrors(null);
+    }
+    if (end) {
+      group.get('endDate')?.setErrors(null);
+    }
     return null;
   }
 
@@ -181,6 +188,16 @@ export class IntermediateCertificateFormComponent implements OnInit {
       keyUsageValues: [this.form.value.digitalSignature, this.form.value.nonRepudiation, this.form.value.keyEncipherment, this.form.value.dataEncipherment, this.form.value.keyAgreement, this.form.value.cRLSign],
       extKeyUsageValues: [this.form.value.serverAuth, this.form.value.clientAuth, this.form.value.codeSigning, this.form.value.emailProtection, this.form.value.timeStamping]
     };
+    
+    if (this.selectedTemplate?.id > -1 && dto.startDate && dto.endDate) {
+      const ttlDays = (new Date(dto.endDate).getTime() - new Date(dto.startDate).getTime()) / (1000 * 3600 * 24);
+      if (ttlDays > this.selectedTemplate.ttl) {
+        this.form.get('startDate')?.setErrors({ invalidTTL: true });
+        this.form.get('endDate')?.setErrors({ invalidTTL: true });
+        console.log("INVALID TTL")
+        return 
+      }
+    }
 
     this.certificateService.createIntermediateCertificate(dto)
       .subscribe({

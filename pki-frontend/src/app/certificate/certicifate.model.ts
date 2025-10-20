@@ -68,6 +68,7 @@ export enum CertificateStatus {
 }
 
 export interface CreateCertTemplate {
+  name: string,
   serialNumber: string,
   commonNameRegex: string,
   sanRegex: string,
@@ -78,6 +79,7 @@ export interface CreateCertTemplate {
 }
 
 export interface CertTemplate {
+  name: string,
   id: number,
   serialNumber: string,
   commonNameRegex: string,

@@ -24,6 +24,7 @@ export class CreateTemplateFormComponent {
   ) {
     this.form = this.fb.group({
       issuerSerialNumber: ['', Validators.required],
+      templateName: ['', Validators.required],
       commonNameRegex: [''],
       sanRegex: [''],
       ttl: ['', [Validators.required, Validators.pattern('^[0-9]*$')]],
@@ -66,6 +67,7 @@ export class CreateTemplateFormComponent {
     }
 
     let newTemplate: CreateCertTemplate = {
+      name: this.form.value.templateName,
       serialNumber: this.form.value.issuerSerialNumber,
       commonNameRegex: this.form.value.commonNameRegex,
       sanRegex: this.form.value.sanRegex,
