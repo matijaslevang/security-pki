@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,7 @@ public class JwtUserFilter extends OncePerRequestFilter {
                 String department = String.valueOf(token.getTokenAttributes().get("department"));
 
 
-                this.userService.save(new User(null, keycloakId, email, firstname, lastname, organization, department, new HashSet<>()));
+                this.userService.save(new User(null, keycloakId, email, firstname, lastname, organization, department, new HashSet<>(), new ArrayList<>()));
             }
         } catch (Exception e) {
             // Logujte grešku umesto da je bacate, da ne biste prekinuli filter chain

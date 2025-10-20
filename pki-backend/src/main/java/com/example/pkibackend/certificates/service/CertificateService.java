@@ -1,4 +1,5 @@
 package com.example.pkibackend.certificates.service;
+import com.example.pkibackend.users.service.UserService;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import com.example.pkibackend.util.Encryption;
@@ -52,6 +53,8 @@ public class CertificateService {
 
     @Autowired
     private IssuerService issuerService;
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private CertificateRepository certificateRepository;
@@ -360,6 +363,18 @@ public class CertificateService {
                 .map(caCert -> {
                     CertificateInfoDTO caDto = mapCertificateToDTO(caCert);
 
+                    List<CertificateInfoDTO> issuedCertificates = userService.getLoggedUser().getIssuedCertificates().stream()
+                            .map(this::mapCertificateToDTO)
+                            .collect(Collectors.toList());
+
+                    return new CertificateChainDTO(caDto, issuedCertificates);
+                })
+                .collect(Collectors.toList());
+
+        /*return userCaCerts.stream()
+                .map(caCert -> {
+                    CertificateInfoDTO caDto = mapCertificateToDTO(caCert);
+
                     List<CertificateInfoDTO> issuedCertificates = allCertificatesInSystem.stream()
                             .filter(cert -> {
                                 if (cert.getX509Certificate() == null || cert.getX509Certificate().getIssuerX500Principal() == null)
@@ -372,7 +387,7 @@ public class CertificateService {
 
                     return new CertificateChainDTO(caDto, issuedCertificates);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());*/
     }
 
     public List<CertificateChainDisplayDTO> getCertificateChainsForAdmin() {

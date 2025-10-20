@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -46,4 +47,10 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "certificate_serial")
     )
     private Set<Certificate> certificates = new HashSet<>();
+
+    @OneToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "user_issued_certifications",
+                joinColumns = @JoinColumn(name = "user_id"),
+                inverseJoinColumns = @JoinColumn(name = "certificate_serial"))
+    private List<Certificate> issuedCertificates;
 }
