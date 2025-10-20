@@ -40,7 +40,7 @@ export class IntermediateCertificateFormComponent implements OnInit {
       startDate: [new Date(), Validators.required],
       endDate: ['', Validators.required],
       sanString: [''],
-      skiAki: [false],
+      skiaki: [false],
       digitalSignature: [false],
       nonRepudiation: [false],
       keyEncipherment: [false],
