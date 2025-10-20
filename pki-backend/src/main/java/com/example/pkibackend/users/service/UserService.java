@@ -120,8 +120,9 @@ public class UserService {
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(user -> new UserDTO(user.getId(),
+                        String.format("%s %s (%s)", user.getFirstname(), user.getLastname(), user.getEmail()),
                         user.getKeycloakId(), // Vraćamo i keycloakId
-                        String.format("%s %s (%s)", user.getFirstname(), user.getLastname(), user.getEmail()), user.getOrganization()) )
+                        user.getOrganization()) )
                 .collect(Collectors.toList());
     }
 
