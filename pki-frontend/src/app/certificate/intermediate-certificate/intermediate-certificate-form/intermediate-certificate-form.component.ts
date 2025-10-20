@@ -72,8 +72,9 @@ export class IntermediateCertificateFormComponent implements OnInit {
       next: (templates: CertTemplate[]) => {
         this.templates = [{
           id: -1,
+          name: "No template",
           serialNumber: '',
-          commonNameRegex: 'No template',
+          commonNameRegex: '',
           sanRegex: '',
           ttl: 0,
           skiakiDefaultValue: false,

@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 public class TemplateCreateDTO {
     private String serialNumber;
+    private String name;
     private String commonNameRegex;
     private String sanRegex;
     private Integer ttl;

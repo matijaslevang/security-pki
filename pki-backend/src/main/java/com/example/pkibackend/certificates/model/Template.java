@@ -21,6 +21,9 @@ public class Template {
     private Long id;
 
     @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
     private String certificateSerialNumber;
 
     @Column(nullable = false)
@@ -69,6 +72,7 @@ public class Template {
     private Boolean timeStamping;
 
     public Template(TemplateCreateDTO templateCreateDTO) {
+        this.name = templateCreateDTO.getName();
         this.certificateSerialNumber = templateCreateDTO.getSerialNumber();
         this.commonNameRegex = templateCreateDTO.getCommonNameRegex();
         this.sanRegex = templateCreateDTO.getSanRegex();
