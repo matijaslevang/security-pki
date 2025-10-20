@@ -9,6 +9,7 @@
         <th>Issuer</th>
         <th>Valid From</th>
         <th>Valid To</th>
+        <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -23,7 +24,17 @@
         <td>{{ cert.validFrom | date:'dd.MM.yyyy' }}</td>
         <td>{{ cert.validTo | date:'dd.MM.yyyy' }}</td>
         <td>
+            <span [ngClass]="{
+              'status-valid': cert.status === 'VALID',
+              'status-revoked': cert.status === 'REVOKED'
+            }">
+              {{ cert.status }}
+            </span>
+          </td>
+       
+        <td>
           <button *ngIf="cert.status === 'VALID'" (click)="downloadCertificate(cert.serialNumber)">Download</button>
+          <button *ngIf="cert.status === 'VALID'" class="btn-revoke" (click)="revokeCertificate(cert.serialNumber)">Revoke</button>
         </td>
       </tr>
     </tbody>

@@ -1,42 +1,66 @@
-.table-container {
+ .chains-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   width: 100%;
+}
+
+.chain-table {
+  width: 90%;
   margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fafafa;
 }
 
 table {
-  width: 80%; /* Širina tabele */
+  width: 100%;
   border-collapse: collapse;
   margin-top: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  table-layout: fixed;
 }
 
 th, td {
   border: 1px solid #dddddd;
   text-align: left;
   padding: 8px;
+  word-wrap: break-word;
 }
 
 thead tr {
-  background-color: #f2f2f2;
+  background-color: #e0e0e0;
 }
 
-tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+.root-cert {
+  background-color: #d1e7dd; 
+  font-weight: bold;
+}
+
+.issued-cert td:first-child {
+  padding-left: 20px;
 }
 
 button {
   padding: 5px 10px;
   cursor: pointer;
-  border: 1px solid #007bff;
-  background-color: #007bff;
+  border: none;
+  background-color: #0d6efd;
   color: white;
   border-radius: 4px;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #0b5ed7;
+}
+
+.no-chains {
+  margin-top: 2rem;
+  font-style: italic;
+  color: #6c757d;
+}
+
+.chain-table h3 {
+  word-wrap: break-word; /* Allows long text to wrap to the next line */
+  font-size: 1.4em; /* Slightly smaller font size for the title */
 }

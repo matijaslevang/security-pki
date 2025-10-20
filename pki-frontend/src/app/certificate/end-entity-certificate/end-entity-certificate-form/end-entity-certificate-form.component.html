@@ -112,7 +112,15 @@
           <mat-checkbox formControlName="emailProtection" class="checkbox-full-width">emailProtection</mat-checkbox>
           <mat-checkbox formControlName="timeStamping" class="checkbox-full-width">timeStamping</mat-checkbox>
       </div>
-      </form>
+      <h2 class="form-section-title">Download Options</h2>
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Keystore Password</mat-label>
+          <input matInput formControlName="password" type="password" placeholder="Enter password for PKCS12/JKS">
+          <mat-error *ngIf="formAuto.get('password')?.hasError('required')">
+            Password is required for keystore.
+          </mat-error>
+        </mat-form-field>
+        </form>
     </div>
 
     <div mat-dialog-actions align="end">

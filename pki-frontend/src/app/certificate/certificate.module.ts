@@ -40,6 +40,7 @@ import { MatTabsModule } from '@angular/material/tabs';
     EndEntityCertificateTableComponent,
     CreateTemplateFormComponent,
     RevocationDialogComponent,
+    
   ],
   imports: [
     CommonModule,

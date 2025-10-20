@@ -14,6 +14,7 @@ import java.util.List;
 public class CreateCertificateDTO {
     private String issuerSerialNumber;
     private SubjectDTO subjectDto;
+    private String password;
     @JsonProperty("selfSigned")
     private boolean selfSigned;
     @JsonProperty("intermediate")

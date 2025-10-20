@@ -39,7 +39,8 @@ export class EndEntityCertificateFormComponent implements OnInit {
     clientAuth: new FormControl(false),
     codeSigning: new FormControl(false),
     emailProtection: new FormControl(false),
-    timeStamping: new FormControl(false)
+    timeStamping: new FormControl(false),
+    password: new FormControl('', Validators.required)
   }, { validators: [this.endEntityDateRangeValidator] });
 
   mode: Mode = 'auto';
@@ -76,10 +77,11 @@ export class EndEntityCertificateFormComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: { isAdmin: boolean }
   ) {}
 
-  ngOnInit(): void {
-    this.issuingCertificates$ = this.data?.isAdmin
-      ? this.certificateService.getAllIssuingCertificates()
-      : this.certificateService.getIssuingCertificates();
+  ngOnInit(): void { // admin, normal-user isti dropdown
+    // this.issuingCertificates$ = this.data?.isAdmin
+    //   ? this.certificateService.getAllIssuingCertificates()
+    //   : this.certificateService.getIssuingCertificates();
+    this.issuingCertificates$ = this.certificateService.getAllIssuingCertificates()
     this.formAuto.get('issuerSerialNumber')?.valueChanges.subscribe(() => {
       this.loadTemplates(this.formAuto.get('issuerSerialNumber')?.value);
     });
@@ -216,6 +218,7 @@ export class EndEntityCertificateFormComponent implements OnInit {
       sanString: this.formAuto.value.sanString || '',
       startDate: this.formAuto.value.startDate,
       endDate: this.formAuto.value.endDate,
+      
       subjectDto: {
       commonName: this.formAuto.value.commonName,
       surname: this.formAuto.value.surname,
@@ -225,11 +228,14 @@ export class EndEntityCertificateFormComponent implements OnInit {
       email: this.formAuto.value.email,
       country: this.formAuto.value.country,
     },
+    
     keyUsageValues: [this.formAuto.value.digitalSignature, this.formAuto.value.nonRepudiation, this.formAuto.value.keyEncipherment, this.formAuto.value.dataEncipherment, this.formAuto.value.keyAgreement, this.formAuto.value.cRLSign],
+
     extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
     };
     if (this.selectedTemplate?.id > -1 && req.startDate && req.endDate) {
     const ttlDays = (new Date(req.endDate).getTime() - new Date(req.startDate).getTime()) / (1000 * 3600 * 24);
+
       if (ttlDays > this.selectedTemplate.ttl) {
           this.formAuto.get('startDate')?.setErrors({ invalidTTL: true });
           this.formAuto.get('endDate')?.setErrors({ invalidTTL: true });
@@ -237,8 +243,14 @@ export class EndEntityCertificateFormComponent implements OnInit {
           return 
       }
     }
-      this.certificateService.createEndEntityCertificate(req).subscribe({
-        next: ok => { if (ok) this.dialogRef.close(true); },
+    const password = this.formAuto.value.password;
+      this.certificateService.createEndEntityCertificateBlob(req, password).subscribe({
+      // this.certificateService.createEndEntityCertificateBlob(req).subscribe({
+        //next: ok => { if (ok) this.dialogRef.close(true); },
+        next: (blob: Blob) => {
+          this.downloadBlob(blob, 'certificate.p12');
+          this.dialogRef.close(true);
+        },
         error: err => console.error('createEndEntityCertificate (auto) failed:', err)
       });
       return;
@@ -287,32 +299,18 @@ export class EndEntityCertificateFormComponent implements OnInit {
     next: ok => { if (ok) this.dialogRef.close(true); },
     error: err => console.error('submitCsrWithExtensions failed:', err)
   });
-    // const c = this.formCsr.value;
-    // const file = c.csrFile!;
-    // const issuerSerial = c.issuerSerialNumber!;
-    // const start = c.startDate!;
-    // const end = c.endDate!;
     
-    ////////////////////// -----------
-    
-    // const req: CreateCertCsrUpload = {
-    // issuerSerialNumber: this.formCsr.value.issuerSerialNumber, 
-    // selfSigned: false,
-    // intermediate: false,
-    // skiaki: !!this.formCsr.value.skiaki,
-    // sanString: this.formCsr.value.sanString || '',
-    // startDate: this.formCsr.value.startDate,
-    // endDate: this.formCsr.value.endDate,
-    // keyUsageValues: [this.formCsr.value.digitalSignature, this.formCsr.value.nonRepudiation, this.formCsr.value.keyEncipherment, this.formCsr.value.dataEncipherment, this.formCsr.value.keyAgreement, this.formCsr.value.cRLSign],
-    // extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
-    // }
-    ////////////////////// -----------
-    // this.certificateService.submitCsr(issuerSerial, start, end, file).subscribe({
-    //   next: ok => { if (ok) this.dialogRef.close(true); },
-    //   error: err => console.error('submitCsr failed:', err)
-    // });
   }
-
+  downloadBlob(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
   onCancel(): void {
     this.dialogRef.close(false);
   }

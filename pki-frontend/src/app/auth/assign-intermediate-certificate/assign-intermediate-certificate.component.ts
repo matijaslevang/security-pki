@@ -44,10 +44,11 @@ export class AssignCertificateFormComponent implements OnInit {
     this.users$ = this.userService.getUsers().pipe(
       tap(users => console.log('4. All users received from service:', users)),
       map(users => {
-        const filteredUsers = users.filter(user =>
-          user.keycloakId !== currentKeycloakId &&
-          user.organization === certificateOrganization
-        );
+        const filteredUsers = users;
+        // const filteredUsers = users.filter(user =>
+        //   user.keycloakId !== currentKeycloakId &&
+        //   user.organization === certificateOrganization
+        // );
         console.log('5. Users after filtering (same organization, not admin):', filteredUsers);
         return filteredUsers;
       })

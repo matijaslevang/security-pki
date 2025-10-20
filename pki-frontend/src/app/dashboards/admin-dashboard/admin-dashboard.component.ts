@@ -5,7 +5,7 @@ import { IntermediateCertificateFormComponent } from '../../certificate/intermed
 import { SelfSignedCertificateFormComponent } from '../../certificate/self-signed-certificate/self-signed-certificate-form/self-signed-certificate-form.component';
 import { CreateTemplateFormComponent } from '../../certificate/templates/create-template-form/create-template-form.component';
 import { EndEntityCertificateFormComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-form/end-entity-certificate-form.component';
-
+import { EndEntityCertificateAutogenerateComponent } from '../../certificate/end-entity-certificate/end-entity-certificate-autogenerate/end-entity-certificate-autogenerate.component';
 @Component({
   selector: 'app-admin-dashboard',
   templateUrl: './admin-dashboard.component.html',
@@ -45,7 +45,7 @@ export class AdminDashboardComponent {
   }
 
   openCreateEndEntityForm(): void {
-    const dialogRef = this.dialog.open(EndEntityCertificateFormComponent, {
+    const dialogRef = this.dialog.open(EndEntityCertificateAutogenerateComponent, {
       width: '800px',
       disableClose: true,
       data: { isAdmin: true } 
