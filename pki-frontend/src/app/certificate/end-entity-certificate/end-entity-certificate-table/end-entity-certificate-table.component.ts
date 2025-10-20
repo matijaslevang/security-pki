@@ -55,16 +55,6 @@ export class EndEntityCertificateTableComponent implements OnInit {
         console.error('Error loading certificates:', err);
       }
     });
-
-    this.certificateService.getMyCertificates().subscribe({
-      next: (data) => {
-        this.certificatees = data;
-        console.log('Certificates successfully loaded:', this.certificates);
-      },
-      error: (err) => {
-        console.error('Error loading certificates:', err);
-      }
-    });
   }
 
   downloadCertificate(serialNumber: string): void {

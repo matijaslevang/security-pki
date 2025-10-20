@@ -324,7 +324,7 @@ public class CertificateService {
                 .collect(Collectors.toList());
     }
 
-    private CertificateInfoDTO mapCertificateToDTO(Certificate certificate) {
+    public CertificateInfoDTO mapCertificateToDTO(Certificate certificate) {
         X509Certificate x509Cert = certificate.getX509Certificate();
         return new CertificateInfoDTO(
                 x509Cert.getSerialNumber().toString(),
@@ -857,7 +857,11 @@ public class CertificateService {
         certificateWrapper.setIssuerId(issuer.getUserUUID());
         certificateWrapper.setX509Certificate(cert);
         certificateWrapper.setStatus(CertificateStatus.VALID);
-        certificateRepository.save(certificateWrapper);
+        certificateWrapper = certificateRepository.save(certificateWrapper);
+
+        User user = userService.getLoggedUser();
+        user.getIssuedCertificates().add(certificateWrapper);
+        userService.save(user);
 
         // 7. Create PKCS12 keystore (private key not saved)
         try {

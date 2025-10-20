@@ -83,7 +83,7 @@ export class EndEntityCertificateFormComponent implements OnInit {
     //   : this.certificateService.getIssuingCertificates();
     this.issuingCertificates$ = this.certificateService.getAllIssuingCertificates()
     this.formAuto.get('issuerSerialNumber')?.valueChanges.subscribe(() => {
-      this.loadTemplates(this.formAuto.get('issuerSerialNumber')?.value);
+      //this.loadTemplates(this.formAuto.get('issuerSerialNumber')?.value);
     });
   }
 
