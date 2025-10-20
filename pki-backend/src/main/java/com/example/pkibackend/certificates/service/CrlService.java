@@ -4,11 +4,13 @@ import com.example.pkibackend.certificates.model.Certificate;
 import com.example.pkibackend.certificates.model.Issuer;
 import com.example.pkibackend.certificates.model.enums.CertificateStatus;
 import com.example.pkibackend.certificates.repository.CertificateRepository;
+import com.example.pkibackend.util.Encryption;
 import org.bouncycastle.asn1.x509.CRLReason;
 import org.bouncycastle.cert.X509v2CRLBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CRLConverter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,9 +28,13 @@ public class CrlService {
     private final CertificateRepository certificateRepository;
     private final IssuerService issuerService;
 
+    @Autowired
+    private Encryption encryption;
     // npr. application.properties: pki.crl.cdp-url=http://localhost:7777/api/crl/latest
     @Value("${pki.crl.cdp-url:http://localhost:7777/api/crl/latest}")
     private String publicCrlUrl;
+    @Autowired
+    private OrganizationService organizationService;
 
     private volatile byte[] latestCrlDer = null;
     private volatile Instant lastBuilt = null;
@@ -56,7 +62,7 @@ public class CrlService {
             }
             X509Certificate crlIssuerX = crlIssuerRecord.getX509Certificate();
             Issuer crlIssuer = issuerService.getIssuer(crlIssuerRecord.getIssuerId());
-            PrivateKey crlIssuerKey = crlIssuer.getPrivateKey();
+            PrivateKey crlIssuerKey = crlIssuer.getPrivateKey(encryption, organizationService);
 
             Date now = new Date();
             X500Name issuerName = new X500Name(crlIssuerX.getSubjectX500Principal().getName());

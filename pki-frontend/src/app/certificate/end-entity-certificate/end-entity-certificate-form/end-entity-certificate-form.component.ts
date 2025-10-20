@@ -228,12 +228,14 @@ export class EndEntityCertificateFormComponent implements OnInit {
     keyUsageValues: [this.formAuto.value.digitalSignature, this.formAuto.value.nonRepudiation, this.formAuto.value.keyEncipherment, this.formAuto.value.dataEncipherment, this.formAuto.value.keyAgreement, this.formAuto.value.cRLSign],
     extKeyUsageValues: [this.formAuto.value.serverAuth, this.formAuto.value.clientAuth, this.formAuto.value.codeSigning, this.formAuto.value.emailProtection, this.formAuto.value.timeStamping]
     };
+    if (this.selectedTemplate?.id > -1 && req.startDate && req.endDate) {
     const ttlDays = (new Date(req.endDate).getTime() - new Date(req.startDate).getTime()) / (1000 * 3600 * 24);
-    if (ttlDays > this.selectedTemplate.ttl) {
-        this.formAuto.get('startDate')?.setErrors({ invalidTTL: true });
-        this.formAuto.get('endDate')?.setErrors({ invalidTTL: true });
-        console.log("INVALID TTL")
-        return 
+      if (ttlDays > this.selectedTemplate.ttl) {
+          this.formAuto.get('startDate')?.setErrors({ invalidTTL: true });
+          this.formAuto.get('endDate')?.setErrors({ invalidTTL: true });
+          console.log("INVALID TTL")
+          return 
+      }
     }
       this.certificateService.createEndEntityCertificate(req).subscribe({
         next: ok => { if (ok) this.dialogRef.close(true); },
