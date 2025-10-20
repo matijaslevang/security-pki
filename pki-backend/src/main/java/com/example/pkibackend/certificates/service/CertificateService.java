@@ -1,7 +1,7 @@
 package com.example.pkibackend.certificates.service;
-
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import com.example.pkibackend.util.Encryption;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import com.example.pkibackend.certificates.dtos.*;
 import com.example.pkibackend.certificates.model.Certificate;
@@ -60,6 +60,11 @@ public class CertificateService {
     private UserRepository userRepository;
     @Autowired
     private CrlService crlService;
+
+    @Autowired
+    private Encryption encryption;
+    @Autowired
+    private OrganizationService organizationService;
 
     @PostConstruct
     public void init() {
@@ -129,7 +134,7 @@ public class CertificateService {
         ContentSigner contentSigner;
         JcaX509ExtensionUtils extUtils;
         try {
-            contentSigner = builder.build(issuer.getPrivateKey());
+            contentSigner = builder.build(issuer.getPrivateKey(encryption, organizationService));
             extUtils = new JcaX509ExtensionUtils();
         } catch (OperatorCreationException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -276,7 +281,7 @@ public class CertificateService {
         // Tvoj AttributeConverter će automatski dekriptovati ključ ovde!
         Issuer issuer = issuerService.getIssuer(certificateRecord.getIssuerId());
 
-        PrivateKey privateKey = issuer.getPrivateKey();
+        PrivateKey privateKey = issuer.getPrivateKey(encryption, organizationService);
         X509Certificate certificate = certificateRecord.getX509Certificate();
 
         try {
@@ -596,10 +601,10 @@ public class CertificateService {
         }
 
         // 7) Potpisivanje i čuvanje (potpuno ista logika kao pre)
-        String sigAlg = pickSigAlg(issuer.getPrivateKey());
+        String sigAlg = pickSigAlg(issuer.getPrivateKey(encryption, organizationService));
         ContentSigner signer;
         try {
-            signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(issuer.getPrivateKey());
+            signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(issuer.getPrivateKey(encryption, organizationService));
         } catch (OperatorCreationException e) {
             throw new RuntimeException(e);
         }
@@ -734,11 +739,11 @@ public class CertificateService {
             throw new RuntimeException(e);
         }
 
-        String sigAlg = pickSigAlg(issuer.getPrivateKey());
+        String sigAlg = pickSigAlg(issuer.getPrivateKey(encryption, organizationService));
         ContentSigner signer = null;
         try {
             signer = new JcaContentSignerBuilder(sigAlg)
-                    .setProvider("BC").build(issuer.getPrivateKey());
+                    .setProvider("BC").build(issuer.getPrivateKey(encryption, organizationService));
         } catch (OperatorCreationException e) {
             throw new RuntimeException(e);
         }
@@ -818,7 +823,7 @@ public class CertificateService {
         // Sign
         ContentSigner contentSigner;
         try {
-            contentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").setProvider("BC").build(issuer.getPrivateKey());
+            contentSigner = new JcaContentSignerBuilder("SHA256WithRSAEncryption").setProvider("BC").build(issuer.getPrivateKey(encryption, organizationService));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
