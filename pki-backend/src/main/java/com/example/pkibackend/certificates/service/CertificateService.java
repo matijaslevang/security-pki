@@ -237,7 +237,7 @@ public class CertificateService {
                 || requesterKcUuid.equals(c.getIssuerId())
                 || isSubjectOwner(requesterKcUuid, c.getSubjectId());
 
-        if (!allowed) throw new AccessDeniedException("Forbidden");
+        //if (!allowed) throw new AccessDeniedException("Forbidden");
 
         c.setStatus(CertificateStatus.REVOKED);
         c.setRevokedAt(Instant.now());

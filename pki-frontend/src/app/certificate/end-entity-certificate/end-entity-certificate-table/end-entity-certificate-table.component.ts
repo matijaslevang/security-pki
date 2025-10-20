@@ -10,7 +10,7 @@ import { CertificateInfo } from '../../certicifate.model';
   styleUrls: ['./end-entity-certificate-table.component.css']
 })
 export class EndEntityCertificateTableComponent implements OnInit {
-
+  certificatees: CertificateInfo[] = [];
   certificates: any[] = [];
   userRole: string = '';
 
@@ -49,6 +49,16 @@ export class EndEntityCertificateTableComponent implements OnInit {
     this.certificateService.getMyCertificates().subscribe({
       next: (data) => {
         this.certificates = data;
+        console.log('Certificates successfully loaded:', this.certificates);
+      },
+      error: (err) => {
+        console.error('Error loading certificates:', err);
+      }
+    });
+
+    this.certificateService.getMyCertificates().subscribe({
+      next: (data) => {
+        this.certificatees = data;
         console.log('Certificates successfully loaded:', this.certificates);
       },
       error: (err) => {
