@@ -3,6 +3,7 @@ import { CertificateChain } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
 import { RevocationDialogComponent } from '../../revocation-dialog/revocation-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
+import { CertificateInfo } from '../../certicifate.model';
 @Component({
   selector: 'app-intermediate-certificate-table',
   templateUrl: './intermediate-certificate-table.component.html',
@@ -47,14 +48,14 @@ export class IntermediateCertificateTableComponent implements OnInit {
       }
     });
   }
-  revoke(serial: string): void {
-  const ref = this.dialog.open(RevocationDialogComponent, { data: { serial } });
-  ref.afterClosed().subscribe(res => {
-    if (!res) return;
-    this.certificateService.revokeCertificate(serial, res.reason, res.comment).subscribe({
-      next: () => this.loadChains(),
-      error: err => console.error('revoke failed', err)
+  revokeCertificate(cert: CertificateInfo): void {
+    const ref = this.dialog.open(RevocationDialogComponent, { data: { serial: cert.serialNumber } });
+    ref.afterClosed().subscribe(res => {
+      if (!res) return;
+      this.certificateService.revokeCertificate(cert.serialNumber, res.reason, res.comment).subscribe({
+        next: () => this.loadChains(),
+        error: err => console.error('revoke failed', err)
+      });
     });
-  });
-}
+  }
 }
