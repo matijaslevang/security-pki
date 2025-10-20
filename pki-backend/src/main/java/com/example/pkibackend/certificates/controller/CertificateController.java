@@ -125,7 +125,7 @@ public class CertificateController {
         try {
             // principal.getName() će vratiti 'sub' claim iz JWT tokena (korisnički UUID)
 
-            String userIdAsPassword = principal.getName();
+            String userIdAsPassword = "password";
 
             byte[] keyStoreBytes = certificateService.getCertificateAsKeyStore(serialNumber, userIdAsPassword);
 
