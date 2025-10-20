@@ -3,7 +3,7 @@ import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators }
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../../auth/auth.service';
-import { CreateCertificate, IssuingCertificate } from '../../certicifate.model';
+import { CertTemplate, CreateCertificate, IssuingCertificate } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
 
 @Component({
@@ -16,6 +16,8 @@ export class IntermediateCertificateFormComponent implements OnInit {
   result: any;
   issuingCertificates$!: Observable<IssuingCertificate[]>;
   currentUserUuid: string | null = null;
+  templates: CertTemplate[] = []
+  selectedTemplate: CertTemplate = null;
 
   constructor(
     private fb: FormBuilder,
@@ -60,6 +62,95 @@ export class IntermediateCertificateFormComponent implements OnInit {
       this.issuingCertificates$ = this.certificateService.getIssuingCertificates();
     }
     this.currentUserUuid = await this.authService.getUserId();
+    this.form.get('issuerSerialNumber')?.valueChanges.subscribe(() => {
+      this.loadTemplates(this.form.get('issuerSerialNumber')?.value);
+    });
+  }
+
+  loadTemplates(serial: string): void {
+    this.certificateService.getAllTemplatesForCertificateSerial(serial).subscribe({
+      next: (templates: CertTemplate[]) => {
+        this.templates = [{
+          id: -1,
+          serialNumber: '',
+          commonNameRegex: 'No template',
+          sanRegex: '',
+          ttl: 0,
+          skiakiDefaultValue: false,
+          keyUsageDefaultValues: [],
+          extKeyUsageDefaultValues: []
+        },
+        ...templates]
+      }
+    })
+  }
+
+  applyTemplate(): void {
+    if (this.selectedTemplate && this.selectedTemplate.id === -1) {
+      this.form.get('subject.commonName')?.setValidators([Validators.required]);
+      this.form.get('sanString')?.clearValidators();
+
+      this.form.get('subject.commonName')?.updateValueAndValidity();
+      this.form.get('sanString')?.updateValueAndValidity();
+
+      this.form.patchValue({
+        digitalSignature: false,
+        nonRepudiation: false,
+        keyEncipherment: false,
+        dataEncipherment: false,
+        keyAgreement: false,
+        cRLSign: false,
+        serverAuth: false,
+        clientAuth: false,
+        codeSigning: false,
+        emailProtection: false,
+        timeStamping: false
+      })
+    } else if (this.selectedTemplate && this.selectedTemplate.id > -1) {
+      this.form.get('subject.commonName')?.setValidators([
+        Validators.required,
+        Validators.pattern(new RegExp(this.selectedTemplate.commonNameRegex))
+      ]);
+      this.form.get('sanString')?.setValidators([
+        Validators.pattern(new RegExp(this.selectedTemplate.sanRegex))
+      ]);
+      this.form.get('subject.commonName')?.updateValueAndValidity();
+      this.form.get('sanString')?.updateValueAndValidity();
+
+      this.form.patchValue({
+        digitalSignature: this.selectedTemplate.keyUsageDefaultValues[0],
+        nonRepudiation: this.selectedTemplate.keyUsageDefaultValues[1],
+        keyEncipherment: this.selectedTemplate.keyUsageDefaultValues[2],
+        dataEncipherment: this.selectedTemplate.keyUsageDefaultValues[3],
+        keyAgreement: this.selectedTemplate.keyUsageDefaultValues[4],
+        cRLSign: this.selectedTemplate.keyUsageDefaultValues[5],
+        serverAuth: this.selectedTemplate.extKeyUsageDefaultValues[0],
+        clientAuth: this.selectedTemplate.extKeyUsageDefaultValues[1],
+        codeSigning: this.selectedTemplate.extKeyUsageDefaultValues[2],
+        emailProtection: this.selectedTemplate.extKeyUsageDefaultValues[3],
+        timeStamping: this.selectedTemplate.extKeyUsageDefaultValues[4]
+      })
+    } else {
+      this.form.get('subject.commonName')?.setValidators([Validators.required]);
+      this.form.get('sanString')?.clearValidators();
+
+      this.form.get('subject.commonName')?.updateValueAndValidity();
+      this.form.get('sanString')?.updateValueAndValidity();
+
+      this.form.patchValue({
+        digitalSignature: false,
+        nonRepudiation: false,
+        keyEncipherment: false,
+        dataEncipherment: false,
+        keyAgreement: false,
+        cRLSign: false,
+        serverAuth: false,
+        clientAuth: false,
+        codeSigning: false,
+        emailProtection: false,
+        timeStamping: false
+      })
+    }
   }
 
   dateValidator(group: AbstractControl): ValidationErrors | null {

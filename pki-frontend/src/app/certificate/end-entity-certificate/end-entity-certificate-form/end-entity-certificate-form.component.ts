@@ -3,7 +3,7 @@ import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators }
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { Observable } from 'rxjs';
-import { CreateCertificate, IssuingCertificate, CreateCertCsrUpload } from '../../certicifate.model';
+import { CreateCertificate, IssuingCertificate, CreateCertCsrUpload, CertTemplate } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
 
 type Mode = 'auto' | 'csr';
@@ -44,6 +44,10 @@ export class EndEntityCertificateFormComponent implements OnInit {
 
   mode: Mode = 'auto';
 
+  
+  templates: CertTemplate[] = []
+  selectedTemplate: CertTemplate = null;
+
   // CSR forma
   formCsr = new FormGroup({
     issuerSerialNumber: new FormControl<string | null>(null, Validators.required),
@@ -76,6 +80,9 @@ export class EndEntityCertificateFormComponent implements OnInit {
     this.issuingCertificates$ = this.data?.isAdmin
       ? this.certificateService.getAllIssuingCertificates()
       : this.certificateService.getIssuingCertificates();
+    this.formAuto.get('issuerSerialNumber')?.valueChanges.subscribe(() => {
+      this.loadTemplates(this.formAuto.get('issuerSerialNumber')?.value);
+    });
   }
 
   static dateRangeValidator(startKey: string, endKey: string) {
@@ -84,6 +91,92 @@ export class EndEntityCertificateFormComponent implements OnInit {
       const e = group.get(endKey)?.value;
       return (s && e && new Date(s) >= new Date(e)) ? { endBeforeStart: true } : null;
     };
+  }
+
+  loadTemplates(serial: string): void {
+    this.certificateService.getAllTemplatesForCertificateSerial(serial).subscribe({
+      next: (templates: CertTemplate[]) => {
+        this.templates = [{
+          id: -1,
+          serialNumber: '',
+          commonNameRegex: 'No template',
+          sanRegex: '',
+          ttl: 0,
+          skiakiDefaultValue: false,
+          keyUsageDefaultValues: [],
+          extKeyUsageDefaultValues: []
+        },
+        ...templates]
+      }
+    })
+  }
+
+  applyTemplate(): void {
+    if (this.selectedTemplate && this.selectedTemplate.id === -1) {
+      this.formAuto.get('commonName')?.setValidators([Validators.required]);
+      this.formAuto.get('sanString')?.clearValidators();
+
+      this.formAuto.get('commonName')?.updateValueAndValidity();
+      this.formAuto.get('sanString')?.updateValueAndValidity();
+
+      this.formAuto.patchValue({
+        digitalSignature: false,
+        nonRepudiation: false,
+        keyEncipherment: false,
+        dataEncipherment: false,
+        keyAgreement: false,
+        cRLSign: false,
+        serverAuth: false,
+        clientAuth: false,
+        codeSigning: false,
+        emailProtection: false,
+        timeStamping: false
+      })
+    } else if (this.selectedTemplate && this.selectedTemplate.id > -1) {
+      this.formAuto.get('commonName')?.setValidators([
+        Validators.required,
+        Validators.pattern(new RegExp(this.selectedTemplate.commonNameRegex))
+      ]);
+      this.formAuto.get('sanString')?.setValidators([
+        Validators.pattern(new RegExp(this.selectedTemplate.sanRegex))
+      ]);
+      this.formAuto.get('commonName')?.updateValueAndValidity();
+      this.formAuto.get('sanString')?.updateValueAndValidity();
+
+      this.formAuto.patchValue({
+        digitalSignature: this.selectedTemplate.keyUsageDefaultValues[0],
+        nonRepudiation: this.selectedTemplate.keyUsageDefaultValues[1],
+        keyEncipherment: this.selectedTemplate.keyUsageDefaultValues[2],
+        dataEncipherment: this.selectedTemplate.keyUsageDefaultValues[3],
+        keyAgreement: this.selectedTemplate.keyUsageDefaultValues[4],
+        cRLSign: this.selectedTemplate.keyUsageDefaultValues[5],
+        serverAuth: this.selectedTemplate.extKeyUsageDefaultValues[0],
+        clientAuth: this.selectedTemplate.extKeyUsageDefaultValues[1],
+        codeSigning: this.selectedTemplate.extKeyUsageDefaultValues[2],
+        emailProtection: this.selectedTemplate.extKeyUsageDefaultValues[3],
+        timeStamping: this.selectedTemplate.extKeyUsageDefaultValues[4]
+      })
+    } else {
+      this.formAuto.get('commonName')?.setValidators([Validators.required]);
+      this.formAuto.get('sanString')?.clearValidators();
+
+      this.formAuto.get('commonName')?.updateValueAndValidity();
+      this.formAuto.get('sanString')?.updateValueAndValidity();
+
+      this.formAuto.patchValue({
+        digitalSignature: false,
+        nonRepudiation: false,
+        keyEncipherment: false,
+        dataEncipherment: false,
+        keyAgreement: false,
+        cRLSign: false,
+        serverAuth: false,
+        clientAuth: false,
+        codeSigning: false,
+        emailProtection: false,
+        timeStamping: false
+      })
+    }
   }
 
   onTabChange(ev: MatTabChangeEvent): void {

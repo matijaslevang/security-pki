@@ -18,6 +18,15 @@
       </mat-error>
     </mat-form-field>
 
+    <mat-form-field appearance="fill" class="full-width" *ngIf="templates.length > 1">
+      <mat-label>Template</mat-label>
+      <mat-select [(value)]="selectedTemplate" (selectionChange)="applyTemplate()">
+        <mat-option *ngFor="let template of templates" [value]="template">
+          {{template.commonNameRegex}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
     <h2 class="form-section-title">New Certificate Subject Details</h2>
     <div formGroupName="subject" class="subject-group">
       <mat-form-field appearance="fill">
