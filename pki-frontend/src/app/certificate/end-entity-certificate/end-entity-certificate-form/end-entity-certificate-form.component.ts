@@ -3,7 +3,7 @@ import { AbstractControl, FormControl, FormGroup, ValidationErrors, Validators }
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { Observable } from 'rxjs';
-import { CreateCertificate, IssuingCertificate, CreateCertCsrUpload, CertTemplate } from '../../certicifate.model';
+import { CreateCertificate, CreateCertificateWithPassword,IssuingCertificate, CreateCertCsrUpload, CertTemplate } from '../../certicifate.model';
 import { CertificateService } from '../../certificate.service';
 
 type Mode = 'auto' | 'csr';
@@ -243,16 +243,32 @@ export class EndEntityCertificateFormComponent implements OnInit {
           return 
       }
     }
-    const password = this.formAuto.value.password;
-      this.certificateService.createEndEntityCertificateBlob(req, password).subscribe({
-      // this.certificateService.createEndEntityCertificateBlob(req).subscribe({
-        //next: ok => { if (ok) this.dialogRef.close(true); },
-        next: (blob: Blob) => {
-          this.downloadBlob(blob, 'certificate.p12');
-          this.dialogRef.close(true);
-        },
-        error: err => console.error('createEndEntityCertificate (auto) failed:', err)
-      });
+    // const password = this.formAuto.value.password;
+    //   this.certificateService.createEndEntityCertificateBlob(req, password).subscribe({
+    //   // this.certificateService.createEndEntityCertificateBlob(req).subscribe({
+    //     //next: ok => { if (ok) this.dialogRef.close(true); },
+    //     next: (blob: Blob) => {
+    //       this.downloadBlob(blob, 'certificate.p12');
+    //       this.dialogRef.close(true);
+    //     },
+    //     error: err => console.error('createEndEntityCertificate (auto) failed:', err)
+    //   });
+    const requestData: CreateCertificateWithPassword = {
+      certificate: req, // 'req' je objekat sa podacima sertifikata koji si već napravila
+      password: this.formAuto.value.password // Uzimamo šifru direktno iz forme
+    };
+
+    // Pozivamo novu, ispravljenu metodu iz servisa sa samo jednim argumentom
+    this.certificateService.createEndEntityCertificateBlob(requestData).subscribe({
+      next: (blob: Blob) => {
+        this.downloadBlob(blob, 'certificate.p12');
+        this.dialogRef.close(true);
+      },
+      error: err => {
+        console.error('createEndEntityCertificate (auto) failed:', err);
+        // Ovde možeš dodati logiku za prikaz greške korisniku
+      }
+    });
       return;
     }
 
@@ -295,7 +311,8 @@ export class EndEntityCertificateFormComponent implements OnInit {
   };
 
   // Pozovi novu servisnu metodu
-  this.certificateService.submitCsrWithExtensions(req, file).subscribe({
+  this.certificateService.submitCsr(req.issuerSerialNumber,req.startDate,req.endDate, file).subscribe({
+  //this.certificateService.submitCsrWithExtensions(req, file).subscribe({
     next: ok => { if (ok) this.dialogRef.close(true); },
     error: err => console.error('submitCsrWithExtensions failed:', err)
   });

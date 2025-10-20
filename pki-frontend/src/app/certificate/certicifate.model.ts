@@ -11,7 +11,10 @@ export interface CreateCertificate {
     extKeyUsageValues: boolean[],
     //password: string,
 }
-
+export interface CreateCertificateWithPassword {
+  certificate: CreateCertificate;
+  password: string;
+}
 export interface CreateCertCsrUpload {
     issuerSerialNumber: string,
     selfSigned: boolean,

@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { environment } from '../../env/environment';
 import { Observable } from 'rxjs';
-import { CertificateChain, CertificateChainDisplay, CreateCertCsrUpload,CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
+import { CertificateChain, CreateCertificateWithPassword, CertificateChainDisplay, CreateCertCsrUpload,CertificateInfo, CertTemplate, CreateCertificate, CreateCertTemplate, IssuingCertificate } from './certicifate.model';
 
 @Injectable({
   providedIn: 'root'
@@ -20,11 +20,13 @@ export class CertificateService {
   createIntermediateCertificate(dto: CreateCertificate): Observable<boolean> {
     return this.httpClient.post<boolean>(`${this.url}/intermediate`, dto);
   }
-  
-   createEndEntityCertificateBlob(newCertificate: CreateCertificate, password: string): Observable<Blob> {
-    const params = new HttpParams().set('password', password);
-    return this.httpClient.post<Blob>(this.url + "/end-entity-blob", newCertificate, { responseType: 'blob' as 'json', params });
+  createEndEntityCertificateBlob(requestData: CreateCertificateWithPassword): Observable<Blob> {
+    return this.httpClient.post(this.url + "/end-entity-blob", requestData, { responseType: 'blob' });
   }
+  //  createEndEntityCertificateBlob(newCertificate: CreateCertificate, password: string): Observable<Blob> {
+  //   const params = new HttpParams().set('password', password);
+  //   return this.httpClient.post<Blob>(this.url + "/end-entity-blob", newCertificate, { responseType: 'blob' as 'json', params });
+  // }
   createEndEntityCertificate(newCertificate: CreateCertificate): Observable<boolean> {
      return this.httpClient.post<boolean>(this.url + "/end-entity", newCertificate);
    }

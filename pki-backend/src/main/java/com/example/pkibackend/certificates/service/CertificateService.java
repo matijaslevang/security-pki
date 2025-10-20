@@ -16,6 +16,7 @@ import com.example.pkibackend.certificates.repository.UserRepository;
 import com.example.pkibackend.util.BooleanListToKeyUsage;
 import jakarta.annotation.PostConstruct;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.*;
 import org.bouncycastle.cert.CertIOException;
@@ -509,7 +510,44 @@ public class CertificateService {
     private boolean isRevoked(Certificate cert) {
         return cert.getStatus() == CertificateStatus.REVOKED;
     }
+    private Extensions getRequestedExtensions(PKCS10CertificationRequest csr) {
+        org.bouncycastle.asn1.pkcs.Attribute[] attrs = csr.getAttributes(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest);
+        if (attrs.length == 0) {
+            return null;
+        }
+        return Extensions.getInstance(attrs[0].getAttrValues().getObjectAt(0));
+    }
 
+    private int getKeyUsageFromExtensions(Extensions extensions) {
+        if (extensions == null) return 0;
+        Extension ext = extensions.getExtension(Extension.keyUsage);
+        if (ext == null) return 0;
+        KeyUsage ku = KeyUsage.getInstance(ext.getParsedValue());
+        int mask = 0;
+        if (ku.hasUsages(KeyUsage.digitalSignature)) mask |= KeyUsage.digitalSignature;
+        if (ku.hasUsages(KeyUsage.nonRepudiation)) mask |= KeyUsage.nonRepudiation;
+        if (ku.hasUsages(KeyUsage.keyEncipherment)) mask |= KeyUsage.keyEncipherment;
+        if (ku.hasUsages(KeyUsage.dataEncipherment)) mask |= KeyUsage.dataEncipherment;
+        if (ku.hasUsages(KeyUsage.keyAgreement)) mask |= KeyUsage.keyAgreement;
+        if (ku.hasUsages(KeyUsage.cRLSign)) mask |= KeyUsage.cRLSign;
+        return mask;
+    }
+
+    private KeyPurposeId[] getExtKeyUsageFromExtensions(Extensions extensions) {
+        if (extensions == null) return new KeyPurposeId[0];
+        Extension ext = extensions.getExtension(Extension.extendedKeyUsage);
+        if (ext == null) return new KeyPurposeId[0];
+        ExtendedKeyUsage eku = ExtendedKeyUsage.getInstance(ext.getParsedValue());
+        return eku.getUsages();
+    }
+
+    private GeneralName[] getSanFromExtensions(Extensions extensions) {
+        if (extensions == null) return new GeneralName[0];
+        Extension ext = extensions.getExtension(Extension.subjectAlternativeName);
+        if (ext == null) return new GeneralName[0];
+        GeneralNames san = GeneralNames.getInstance(ext.getParsedValue());
+        return san.getNames();
+    }
     public Certificate issueFromCsrWithExtensions(CreateCertCsrUploadDTO dto, byte[] csrBytes) {
         // 1) Validacija izdavaoca (isto kao pre, samo koristi podatke iz DTO-a)
         Certificate issuerRecord = certificateRepository
@@ -639,10 +677,7 @@ public class CertificateService {
         return certificateRepository.save(wrap);
     }
 
-    public Certificate issueFromCsr(String issuerSerialNumber,
-                                    Instant start, Instant end,
-                                    byte[] csrBytes) {
-
+    public Certificate issueFromCsr(String issuerSerialNumber, Instant start, Instant end, byte[] csrBytes) {
         // 1) Nađi i validiraj CA izdavaoca
         Certificate issuerRecord = certificateRepository
                 .findById(issuerSerialNumber)
@@ -665,19 +700,19 @@ public class CertificateService {
 
         Issuer issuer = issuerService.getIssuer(issuerRecord.getIssuerId());
         if (issuer == null) throw new IllegalStateException("Issuer owner not found.");
-
+        
         // 2) Parse CSR (PEM ili DER)
-        org.bouncycastle.pkcs.PKCS10CertificationRequest csr;
+        PKCS10CertificationRequest csr;
         try {
             String text = new String(csrBytes, java.nio.charset.StandardCharsets.US_ASCII);
             if (text.contains("-----BEGIN")) {
                 try (org.bouncycastle.util.io.pem.PemReader pr =
                              new org.bouncycastle.util.io.pem.PemReader(new java.io.StringReader(text))) {
                     org.bouncycastle.util.io.pem.PemObject po = pr.readPemObject();
-                    csr = new org.bouncycastle.pkcs.PKCS10CertificationRequest(po.getContent());
+                    csr = new PKCS10CertificationRequest(po.getContent());
                 }
             } else {
-                csr = new org.bouncycastle.pkcs.PKCS10CertificationRequest(csrBytes);
+                csr = new PKCS10CertificationRequest(csrBytes);
             }
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid CSR content.");
@@ -687,7 +722,7 @@ public class CertificateService {
         org.bouncycastle.asn1.x500.X500Name subjectX = csr.getSubject();
         java.security.PublicKey subjectPubKey;
         try {
-            subjectPubKey = new org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest(csr).getPublicKey();
+            subjectPubKey = new JcaPKCS10CertificationRequest(csr).getPublicKey();
         } catch (Exception e) {
             throw new IllegalArgumentException("CSR public key extract failed.");
         }
@@ -698,78 +733,91 @@ public class CertificateService {
             s = new Subject();
             s.setX500Name(subjectX);
             s.setPublicKey(subjectPubKey);
-            s = subjectService.save(s); // dodaj public save u SubjectService ako ga nemaš
+            s = subjectService.save(s);
         }
 
-        // 5) Napravi cert kao i do sada, ali koristi subject iz CSR-a
-        java.math.BigInteger serial;
+        // 5) Napravi sertifikat
+        BigInteger serial;
         do {
-            java.util.UUID uuid = java.util.UUID.randomUUID();
-            serial = new java.math.BigInteger(uuid.toString().replace("-", ""), 16);
+            UUID uuid = UUID.randomUUID();
+            serial = new BigInteger(uuid.toString().replace("-", ""), 16);
             if (serial.signum() < 0) serial = serial.negate();
         } while (certificateRepository.existsById(serial.toString()));
 
-        org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder certGen =
-                new org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder(
-                        issuer.getX500Name(),
-                        serial,
-                        Date.from(start),
-                        Date.from(end),
-                        subjectX,
-                        subjectPubKey
-                );
+        JcaX509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
+                issuer.getX500Name(),
+                serial,
+                Date.from(start),
+                Date.from(end),
+                subjectX,
+                subjectPubKey
+        );
 
+        // 6) Dodaj ekstenzije iz CSR-a
         try {
-            // basicConstraints za EE
-            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.basicConstraints, true,
-                    new org.bouncycastle.asn1.x509.BasicConstraints(false));
-            // keyUsage tipično za EE
-            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.keyUsage, true,
-                    new org.bouncycastle.asn1.x509.KeyUsage(
-                            org.bouncycastle.asn1.x509.KeyUsage.digitalSignature |
-                                    org.bouncycastle.asn1.x509.KeyUsage.keyEncipherment));
+            JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
 
-            // SKI/AKI
-            JcaX509ExtensionUtils ext = null;
-            try {
-                ext = new JcaX509ExtensionUtils();
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
+            // Basic Constraints (uvek false za end-entity)
+            certGen.addExtension(Extension.basicConstraints, true, new BasicConstraints(false));
+
+            // Parsiraj ekstenzije iz CSR-a
+            Extensions csrExtensions = getRequestedExtensions(csr);
+
+            // Key Usage (uzmi iz CSR-a ili postavi podrazumevano ako CSR nema)
+            int keyUsageMask = getKeyUsageFromExtensions(csrExtensions);
+            if (keyUsageMask == 0) {
+                // Podrazumevane vrednosti za end-entity ako CSR nema keyUsage
+                keyUsageMask = KeyUsage.digitalSignature | KeyUsage.keyEncipherment;
             }
-            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.subjectKeyIdentifier, false,
-                    ext.createSubjectKeyIdentifier(subjectPubKey));
-            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.authorityKeyIdentifier, false,
-                    ext.createAuthorityKeyIdentifier(issuer.getPublicKey()));
+            certGen.addExtension(Extension.keyUsage, true, new KeyUsage(keyUsageMask));
 
-            // CDP iz CrlService
+            // Extended Key Usage (uzmi iz CSR-a ako postoji)
+            KeyPurposeId[] eku = getExtKeyUsageFromExtensions(csrExtensions);
+            if (eku.length > 0) {
+                certGen.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(eku));
+            }
+
+            // SKI/AKI (dodaj ako je prisutno u CSR-u)
+            if (csrExtensions != null && csrExtensions.getExtension(Extension.subjectKeyIdentifier) != null) {
+                certGen.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(subjectPubKey));
+                certGen.addExtension(Extension.authorityKeyIdentifier, false, extUtils.createAuthorityKeyIdentifier(issuer.getPublicKey()));
+            }
+
+            // SAN (uzmi iz CSR-a ako postoji)
+            GeneralName[] san = getSanFromExtensions(csrExtensions);
+            if (san.length > 0) {
+                certGen.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(san));
+            }
+
+            // CDP (CRL Distribution Points)
             String cdpUrl = crlService.getPublicCrlUrl();
-            org.bouncycastle.asn1.x509.DistributionPointName dpName = new org.bouncycastle.asn1.x509.DistributionPointName(
-                    new org.bouncycastle.asn1.x509.GeneralNames(
-                            new org.bouncycastle.asn1.x509.GeneralName(org.bouncycastle.asn1.x509.GeneralName.uniformResourceIdentifier, cdpUrl)));
-            org.bouncycastle.asn1.x509.DistributionPoint dp = new org.bouncycastle.asn1.x509.DistributionPoint(dpName, null, null);
-            org.bouncycastle.asn1.x509.CRLDistPoint cdp =
-                    new org.bouncycastle.asn1.x509.CRLDistPoint(new org.bouncycastle.asn1.x509.DistributionPoint[]{dp});
-            certGen.addExtension(org.bouncycastle.asn1.x509.Extension.cRLDistributionPoints, false, cdp);
-        } catch (org.bouncycastle.cert.CertIOException e) {
-            throw new RuntimeException(e);
+            DistributionPointName dpName = new DistributionPointName(
+                    new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, cdpUrl)));
+            DistributionPoint dp = new DistributionPoint(dpName, null, null);
+            CRLDistPoint cdp = new CRLDistPoint(new DistributionPoint[]{dp});
+            certGen.addExtension(Extension.cRLDistributionPoints, false, cdp);
+
+        } catch (CertIOException | NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to add extensions to certificate.", e);
         }
 
+        // 7) Potpiši sertifikat
         String sigAlg = pickSigAlg(issuer.getPrivateKey(encryption, organizationService));
-        ContentSigner signer = null;
+        ContentSigner signer;
         try {
-            signer = new JcaContentSignerBuilder(sigAlg)
-                    .setProvider("BC").build(issuer.getPrivateKey(encryption, organizationService));
+            signer = new JcaContentSignerBuilder(sigAlg).setProvider("BC").build(issuer.getPrivateKey(encryption, organizationService));
         } catch (OperatorCreationException e) {
             throw new RuntimeException(e);
         }
-        org.bouncycastle.cert.X509CertificateHolder holder = certGen.build(signer);
+        X509CertificateHolder holder = certGen.build(signer);
         X509Certificate cert;
         try {
-            cert = new org.bouncycastle.cert.jcajce.JcaX509CertificateConverter().setProvider("BC").getCertificate(holder);
+            cert = new JcaX509CertificateConverter().setProvider("BC").getCertificate(holder);
         } catch (CertificateException e) {
             throw new RuntimeException(e);
         }
 
+        // 8) Sačuvaj sertifikat
         Certificate wrap = new Certificate();
         wrap.setSerial(serial.toString());
         wrap.setSubjectId(s.getId());
